@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Heist at Dither's House — Stealth Robbery vs. NPC AI</title>
+<meta name="description" content="Play as a thief robbing an isometric riso-print house while an AI Guard (7-state FSM, Reactive Behavior Tree, and Petri Net) hunts you down.">
+<meta name="theme-color" content="#f3ebdd">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="fonts/KevinSerif-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/KevinSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css?v=7">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 class="title">The heist at <span class="bot-name" id="header-bot-name">Dither</span>'s house</h1>
+    <p class="lede">You are the <strong>Thief</strong> (teal bandit). Steal <span id="header-quota">$5,000</span> in valuables and slip out the front door before the <strong>AI Guard</strong> catches you.</p>
+  </header>
+
+  <main class="view" id="view" aria-label="The house. Use WASD or click to sneak, E to steal loot, Q to toss a coin.">
+    <canvas id="stage" aria-hidden="true"></canvas>
+
+    <!-- Top-left in-game controls badge -->
+    <div class="heist-hud-pill" id="heist-hud-pill">
+      <span class="heist-key">WASD / Click</span> Sneak
+      <span class="heist-sep">&middot;</span>
+      <span class="heist-key">E</span> Steal
+      <span class="heist-sep">&middot;</span>
+      <span class="heist-key">Q</span> Toss Coin
+      <span class="heist-sep">&middot;</span>
+      <span class="heist-key">Shift</span> Sprint (Noisy)
+    </div>
+
+    <!-- Banner when Busted or Escaped -->
+    <div class="heist-banner" id="heist-banner" hidden>
+      <p class="heist-banner-kicker" id="banner-kicker">CAUGHT BY GUARD AI</p>
+      <h2 class="heist-banner-title" id="banner-title">Busted in the Living Room!</h2>
+      <p class="heist-banner-sub" id="banner-sub">The Guard transitioned Chase &rarr; Attack when distance dropped below 1.35 tiles.</p>
+      <button type="button" class="cta" id="banner-retry-btn"><span>Run New Heist</span> <span>&rarr;</span></button>
+    </div>
+
+    <!-- Promoted Glance HUD Tether (world-anchored above the Guard Bot) -->
+    <div class="glance-tether" id="glance-tether">
+      <div class="glance-top">
+        <span class="glance-state">
+          <span class="glance-dot" id="glance-dot"></span>
+          <span id="glance-state-text">PATROL</span>
+        </span>
+        <span class="glance-arch" id="glance-arch-text">FSM &middot; Petri</span>
+      </div>
+      <div class="glance-bar">
+        <span class="glance-bar-fill" id="glance-bar-fill"></span>
+      </div>
+      <div class="glance-rule">
+        <span id="glance-rule-srcdst">return &rarr; patrol</span>
+        <span class="glance-guard-tag" id="glance-rule-guard">at_route_start</span>
+      </div>
+    </div>
+
+    <!-- World-anchored prompt over the Thief when standing next to stealable loot -->
+    <div class="thief-prompt" id="thief-prompt" hidden>
+      <span class="thief-prompt-key">E</span> <span id="thief-prompt-text">Steal MacBook Air ($1,299)</span>
+    </div>
+
+    <p class="hint" id="hint" hidden></p>
+    <div class="zoom" role="group" aria-label="Zoom">
+      <button type="button" data-zoom="in" aria-label="Closer">+</button>
+      <button type="button" data-zoom="out" aria-label="Further">&minus;</button>
+      <button type="button" data-zoom="fit" aria-label="See the whole house"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4"/></svg></button>
+    </div>
+    <div class="receipt" id="receipt" hidden role="dialog" aria-labelledby="receipt-name">
+      <button type="button" class="receipt-x" aria-label="Close">&times;</button>
+      <p class="receipt-kind"></p>
+      <h2 id="receipt-name" class="receipt-name"></h2>
+      <p class="receipt-price"></p>
+      <p class="receipt-by"></p>
+      <p class="receipt-when"></p>
+    </div>
+    <p class="loading" id="loading">printing the house&hellip;</p>
+  </main>
+
+  <aside class="panel">
+    <section class="wallet" aria-label="Heist Loot and Guard AI Telemetry">
+      <div class="wallet-top">
+        <p class="balance" id="state-balance"><span class="balance-n" id="loot-total">$0</span> <span class="balance-w" id="loot-status">stolen &middot; quota $5,000</span></p>
+        <p class="trip" id="panel-trip" aria-live="polite"><span class="trip-dot" aria-hidden="true"></span><span class="trip-t" id="panel-arch-badge">Guard: PATROL (FSM)</span></p>
+      </div>
+      <p class="sums" id="panel-percepts">Guard dist <span class="earned" id="p-dist">6.2 tiles</span> &middot; LOS <strong id="p-los">hidden</strong> &middot; Thief HP <strong id="p-hp">100%</strong></p>
+      <ul class="rates">
+        <li>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.2" fill="currentColor"/></svg>
+          <span class="rate-top"><span class="rate-n" id="rate-place">p_patrol</span></span>
+          <span class="rate-x" id="rate-place-sub">Petri net (1 token)</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h12l-1 10H5z"/><path d="M7.5 7V5.5a2.5 2.5 0 0 1 5 0V7"/></svg>
+          <span class="rate-top"><span class="rate-n" id="rate-loot-count">0 / 10</span> <span class="rate-l" id="rate-loot-label">loot</span></span>
+          <span class="rate-x" id="rate-nearest-loot">nearest: MacBook ($1,299)</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 10s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5z"/><circle cx="10" cy="10" r="2.2"/></svg>
+          <span class="rate-top"><span class="rate-n" id="rate-fov">Unseen</span></span>
+          <span class="rate-x" id="rate-fov-sub">FOV cone + wall LOS</span>
+        </li>
+        <li>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>
+          <span class="rate-top"><span class="rate-n" id="rate-firings">0</span> <span class="rate-l" id="rate-firings-label">switches</span></span>
+          <span class="rate-x" id="rate-guard-last">TLA+ I1–I5 verified</span>
+        </li>
+      </ul>
+      <div class="goal">
+        <p class="goal-what">Guard suspicion &middot; <span class="goal-name" id="alert-tier">Calm (patrolling rooms)</span></p>
+        <div class="bar" id="alert-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="12"><span class="bar-fill" id="alert-bar-fill"></span></div>
+        <p class="goal-n" id="alert-numbers">12% alert &middot; noise &ge; 35% triggers Investigate, FOV triggers Chase</p>
+      </div>
+    </section>
+
+    <section class="help" aria-label="Heist Actions and AI Controller">
+      <div class="action-row">
+        <button type="button" class="cta cta-half" id="steal-btn">
+          <span><strong>Steal Loot (E)</strong></span>
+          <span aria-hidden="true">+$</span>
+        </button>
+        <button type="button" class="cta cta-half cta-secondary" id="coin-btn">
+          <span><strong>Toss Coin (Q)</strong></span>
+          <span aria-hidden="true">)))</span>
+        </button>
+      </div>
+      <p class="cta-sub">Move with <strong>WASD / Arrow keys</strong> or <strong>click any floor tile</strong>. Click a gold-tagged item to sneak to it and steal it. Escape at the <strong>Front Door</strong> (top-left of the studio).</p>
+      <div class="scenario-bar" role="group" aria-label="Game mode and AI architecture">
+        <button type="button" id="mode-play-btn" class="is-active">Play as Thief</button>
+        <button type="button" id="mode-auto-btn">AI Thief Bot</button>
+        <button type="button" id="arch-switch-btn">Guard: FSM</button>
+        <button type="button" data-scn="sound">Make Noise</button>
+        <button type="button" data-scn="lure">Lure Guard</button>
+        <button type="button" id="reset-heist-btn">New Heist</button>
+      </div>
+      <p class="ideas" id="bt-active-pill" aria-live="polite"></p>
+    </section>
+
+    <section class="log" aria-label="Heist and Guard AI decision feed">
+      <h2>Heist &amp; Guard AI journal</h2>
+      <ol class="feed" id="feed"></ol>
+      <button type="button" class="more" id="more" hidden>Show earlier</button>
+    </section>
+
+    <footer class="foot">
+      <p>Project 2: <strong>Smart NPC Behavior System</strong>. You control the Thief; the Guard NPC runs a single-source <strong>7-state FSM</strong>, <strong>1-token Petri Net</strong>, and <strong>Reactive Behavior Tree</strong>.</p>
+    </footer>
+  </aside>
+</div>
+
+<!-- Dev-only @break-ui dataset switcher (fixed bottom-center, neutral chrome) -->
+<nav class="break-ui-toggle" aria-label="Break-UI dataset mode">
+  <button type="button" data-break-mode="demo" data-active>Demo data</button>
+  <button type="button" data-break-mode="worst">Worst case</button>
+  <button type="button" data-break-mode="empty">Empty</button>
+  <button type="button" data-break-mode="one">One</button>
+  <button type="button" data-break-mode="huge">1,000 rows</button>
+</nav>
+
+<script src="js/data.js"></script>
+<script src="js/press.js"></script>
+<script src="js/world.js"></script>
+<script src="js/kinds.js"></script>
+<script src="js/robot.js"></script>
+<script src="js/scene.js"></script>
+<script src="app.js?v=7"></script>
+</body>
+</html>
