@@ -1,0 +1,103 @@
+/* Frischemarkt additions on top of the shared riso-print stylesheet. */
+.game-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1.5px dashed var(--line);
+  font-size: 0.86rem;
+}
+.game-nav-link {
+  display: inline-block;
+  padding: 3px 8px;
+  background: var(--card);
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  text-decoration: none;
+  font-weight: 700;
+}
+.game-nav-link:hover { background: var(--sun); color: var(--ink); }
+.game-nav-link:active { transform: translate(2px, 2px); box-shadow: none; }
+.game-nav-current {
+  padding: 3px 8px;
+  background: var(--teal);
+  color: var(--paper);
+  font-weight: 700;
+}
+
+/* Heist layer: one readable heat signal and a short objective checklist. */
+.heat-block {
+  margin: 12px 0 10px; padding: 10px 12px; background: var(--card);
+  border: 1.5px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+}
+.heat-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.heat-kicker, .objectives-kicker { font-size: 0.72rem; letter-spacing: 0.12em; font-weight: 800; opacity: 0.75; }
+.heat-label { font-size: 1.15rem; font-weight: 900; }
+.heat-spine { display: flex; gap: 4px; margin: 9px 0 6px; }
+.heat-notch { flex: 1; height: 12px; border: 1.5px solid var(--ink); background: transparent; }
+.heat-notch.is-on { background: var(--teal); }
+.heat-spine[data-tier="2"] .heat-notch.is-on { background: var(--sun); }
+.heat-spine[data-tier="3"] .heat-notch.is-on { background: #e8a23a; }
+.heat-spine[data-tier="4"] .heat-notch.is-on,
+.heat-spine[data-tier="5"] .heat-notch.is-on { background: var(--coral); }
+.heat-note { margin: 0; font-size: 0.82rem; opacity: 0.8; }
+.objectives { margin: 10px 0; }
+.objectives-kicker { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.objective-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.objective { display: flex; gap: 7px; align-items: center; font-size: 0.88rem; padding: 3px 5px; border-left: 3px solid transparent; }
+.objective-mark { font-weight: 900; width: 14px; text-align: center; }
+.objective.is-done { opacity: 0.55; text-decoration: line-through; border-left-color: var(--teal); }
+.status-line { margin: 10px 0 0; padding: 8px 10px; background: var(--sun); border: 1.5px solid var(--ink); font-size: 0.86rem; font-weight: 700; }
+.telemetry { margin-top: 12px; border-top: 1.5px dashed var(--line); padding-top: 8px; }
+.telemetry summary { cursor: pointer; font-size: 0.82rem; font-weight: 800; opacity: 0.8; padding: 4px 0; }
+
+/* Zone strip: names the current department on the larger floor plan. */
+.zone-strip {
+  position: absolute; top: 66px; left: 12px; right: auto; z-index: 24;
+  display: inline-flex; align-items: baseline; gap: 8px;
+  max-width: 280px; padding: 6px 10px; background: var(--card);
+  border: 1.5px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+  transition: opacity 0.5s; white-space: nowrap; overflow: hidden;
+}
+.zone-kicker { font-size: 0.64rem; letter-spacing: 0.10em; font-weight: 800; opacity: 0.75; }
+.zone-strip strong { font-size: 0.86rem; overflow: hidden; text-overflow: ellipsis; }
+.zone-strip.is-fading { opacity: 0; }
+
+/* Compact NPC readout: the bubble must not hide the floor plan. */
+.glance-tether {
+  min-width: 112px !important; max-width: 150px !important;
+  padding: 3px 6px 4px !important; margin-top: -26px !important;
+  box-shadow: 1px 1px 0 var(--ink) !important;
+}
+.glance-tether::after { width: 6px !important; height: 6px !important; bottom: -4px !important; }
+.glance-top { gap: 4px !important; margin-bottom: 3px !important; }
+.glance-state { font-size: 0.62rem !important; letter-spacing: 0.02em !important; }
+.glance-dot { width: 6px !important; height: 6px !important; }
+.glance-arch { font-size: 0.54rem !important; padding: 0 3px !important; max-width: 62px; overflow: hidden; text-overflow: ellipsis; }
+.glance-bar { height: 4px !important; margin-bottom: 0 !important; }
+.glance-rule { display: none !important; }
+
+/* Floating threat pip: a dot and a tiny code, no bubble around the NPC. */
+.glance-tether {
+  background: transparent !important; border: 0 !important; box-shadow: none !important;
+  padding: 0 !important; min-width: 0 !important; max-width: 96px !important;
+  margin-top: -34px !important; display: flex !important;
+  flex-direction: column; align-items: center;
+}
+.glance-tether::after { display: none !important; }
+.glance-top { gap: 3px !important; margin: 0 !important; }
+.glance-state { font-size: 0.56rem !important; background: var(--paper); border: 1px solid var(--ink); padding: 1px 3px !important; line-height: 1 !important; }
+.glance-arch { display: none !important; }
+.glance-bar { width: 22px !important; height: 3px !important; margin: 2px 0 0 !important; }
+.glance-dot { width: 6px !important; height: 6px !important; }
+.glance-rule { display: none !important; }
+
+/* The controls pill teaches the keys, then gets out of the store's way. */
+.heist-hud-pill { animation: hud-pill-out 0.7s ease 14s forwards; }
+@keyframes hud-pill-out { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .heist-hud-pill { animation: none; } }
+
+/* The break-mode toggle must not sit on the bottom status text. */
+.break-ui-toggle { left: auto; right: 14px; transform: none; }

@@ -1,0 +1,59 @@
+flowchart LR
+    p_idle(("p_idle"))
+    p_patrol(("p_patrol (● 1)"))
+    p_investigate(("p_investigate"))
+    p_chase(("p_chase"))
+    p_attack(("p_attack"))
+    p_search(("p_search"))
+    p_return(("p_return"))
+    t0["t0: player_visible"]
+    p_idle --> t0
+    t0 --> p_chase
+    t1["t1: heard_sound"]
+    p_idle --> t1
+    t1 --> p_investigate
+    t2["t2: route_assigned"]
+    p_idle --> t2
+    t2 --> p_patrol
+    t3["t3: player_visible"]
+    p_patrol --> t3
+    t3 --> p_chase
+    t4["t4: heard_sound"]
+    p_patrol --> t4
+    t4 --> p_investigate
+    t5["t5: player_visible"]
+    p_investigate --> t5
+    t5 --> p_chase
+    t6["t6: arrived_and_quiet"]
+    p_investigate --> t6
+    t6 --> p_search
+    t7["t7: in_attack_range"]
+    p_chase --> t7
+    t7 --> p_attack
+    t8["t8: lost_sight_long"]
+    p_chase --> t8
+    t8 --> p_search
+    t9["t9: out_of_range"]
+    p_attack --> t9
+    t9 --> p_chase
+    t10["t10: lost_sight_long"]
+    p_attack --> t10
+    t10 --> p_search
+    t11["t11: player_visible"]
+    p_search --> t11
+    t11 --> p_chase
+    t12["t12: heard_sound"]
+    p_search --> t12
+    t12 --> p_investigate
+    t13["t13: search_expired"]
+    p_search --> t13
+    t13 --> p_return
+    t14["t14: player_visible"]
+    p_return --> t14
+    t14 --> p_chase
+    t15["t15: heard_sound"]
+    p_return --> t15
+    t15 --> p_investigate
+    t16["t16: at_route_start"]
+    p_return --> t16
+    t16 --> p_patrol

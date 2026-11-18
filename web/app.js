@@ -214,27 +214,13 @@ const BREAK_UI_FIXTURES = {
 const ESCAPE_DOOR = { I: 1.2, J: 6.8, room: 'r1' };
 
 // ============================================================================
-// SINGLE-SOURCE 7-STATE FSM_TABLE & PETRI NET RULES
+// SINGLE-SOURCE 7-STATE FSM_TABLE, PROFILES & PETRI NET RULES (from guard_config.js)
 // ============================================================================
-const FSM_TABLE = [
-  { src: 'idle',        dst: 'chase',       guard: 'player_visible' },
-  { src: 'idle',        dst: 'investigate', guard: 'heard_sound' },
-  { src: 'idle',        dst: 'patrol',      guard: 'route_assigned' },
-  { src: 'patrol',      dst: 'chase',       guard: 'player_visible' },
-  { src: 'patrol',      dst: 'investigate', guard: 'heard_sound' },
-  { src: 'investigate', dst: 'chase',       guard: 'player_visible' },
-  { src: 'investigate', dst: 'search',      guard: 'arrived_and_quiet' },
-  { src: 'chase',       dst: 'attack',      guard: 'in_attack_range' },
-  { src: 'chase',       dst: 'search',      guard: 'lost_sight_long' },
-  { src: 'attack',      dst: 'chase',       guard: 'out_of_range' },
-  { src: 'attack',      dst: 'search',      guard: 'lost_sight_long' },
-  { src: 'search',      dst: 'chase',       guard: 'player_visible' },
-  { src: 'search',      dst: 'investigate', guard: 'heard_sound' },
-  { src: 'search',      dst: 'return',      guard: 'search_expired' },
-  { src: 'return',      dst: 'chase',       guard: 'player_visible' },
-  { src: 'return',      dst: 'investigate', guard: 'heard_sound' },
-  { src: 'return',      dst: 'patrol',      guard: 'at_route_start' },
-];
+const CFG = globalThis.GUARD_CONFIG;
+const FSM_TABLE = CFG.fsmTable;
+const PROFILES = CFG.profiles;
+const PROFILE_ORDER = ['standard', 'aggressive', 'cautious', 'observant'];
+const PATROL_WAYPOINTS = CFG.patrolRoute;
 
 const STATE_INK = {
   idle: 'blue',
@@ -255,14 +241,6 @@ const STATE_CSS = {
   search: '#ee6852',
   return: '#008c8a',
 };
-
-const PATROL_WAYPOINTS = [
-  [13.5, 4.5],  // r2: living room
-  [13.5, 13.5], // r4: office
-  [4.5, 13.5],  // r3: kitchen
-  [5.5, 4.5],   // r1: studio
-  [21.5, 21.5], // r9: music room
-];
 
 const N = W.ROOM;
 const guard = { I: 13.5, J: 4.5, angle: 1.5, face: 'sw', act: 'roll', u: 0, mood: '', roll: 0 };
@@ -287,6 +265,7 @@ const keysDown = new Set();
 
 const ai = {
   arch: 'FSM',
+  profileId: CFG.defaultProfile || 'standard',
   state: 'patrol',
   alert: 0.12,
   firings: 0,
@@ -294,12 +273,15 @@ const ai = {
   lastSeenPos: null,
   lastTransition: { src: 'idle', dst: 'patrol', guard: 'route_assigned', tick: 1 },
   btActivePath: 'Petri marking: p_patrol = 1 (∑ tokens = 1)',
+  btTree: null,
   percepts: {
     tick: 0,
     player_visible: false,
     player_dist: 11.4,
     player_angle: 0.0,
     heard_sound: false,
+    sound_age_ticks: 999,
+    alert: 0.12,
     arrived_at_target: false,
     at_route_start: false,
     lost_sight_ticks: 0,
@@ -308,6 +290,8 @@ const ai = {
   soundWave: null,
   feedLog: [],
 };
+
+const activeProfile = () => PROFILES[ai.profileId] || PROFILES.standard;
 
 // ---------------- House geometry & sprite caching ----------------
 function index() {
@@ -600,47 +584,75 @@ function resetHeist() {
 function hasLineOfSight(gI, gJ, tI, tJ) {
   const rG = roomAt(gI, gJ), rT = roomAt(tI, tJ);
   if (!rG || !rT) return false;
-  if (rG.id === rT.id) return true;
-  const localGI = gI % N, localGJ = gJ % N;
-  const localTI = tI % N, localTJ = tJ % N;
-  const nearDoorI = (localGI > 2.6 && localGI < 6.4) && (localTI > 2.6 && localTI < 6.4);
-  const nearDoorJ = (localGJ > 2.6 && localGJ < 6.4) && (localTJ > 2.6 && localTJ < 6.4);
-  return nearDoorI || nearDoorJ;
+  if (rG.id !== rT.id) {
+    const localGI = gI % N, localGJ = gJ % N;
+    const localTI = tI % N, localTJ = tJ % N;
+    const nearDoorI = (localGI > 2.6 && localGI < 6.4) && (localTI > 2.6 && localTI < 6.4);
+    const nearDoorJ = (localGJ > 2.6 && localGJ < 6.4) && (localTJ > 2.6 && localTJ < 6.4);
+    if (!(nearDoorI || nearDoorJ)) return false;
+  }
+  // Check tall floor furniture occlusion along segment (gI,gJ) -> (tI,tJ)
+  const roomObj = rooms.get(rG.id);
+  if (roomObj) {
+    for (const it of roomObj.items) {
+      if (hidden.has(it.id)) continue;
+      const k = kindOf(it);
+      if (!k || S.layerOf(k) !== 'stand' || (k.height || 0) < 1.35) continue;
+      const [ci, cj] = itemTilePos(it);
+      for (let s = 1; s <= 6; s++) {
+        const u = s / 7;
+        const pi = gI + (tI - gI) * u;
+        const pj = gJ + (tJ - gJ) * u;
+        if (Math.hypot(pi - ci, pj - cj) < 0.62) return false;
+      }
+    }
+  }
+  return true;
 }
 
-function evalGuardPredicate(name, p) {
+function evalGuardPredicate(name, p, prof = activeProfile()) {
   switch (name) {
     case 'route_assigned': return true;
-    case 'player_visible': return p.player_visible;
-    case 'heard_sound': return p.heard_sound;
+    case 'player_visible': return p.player_visible && p.alert >= prof.alert_detect_threshold;
+    case 'heard_sound':
+      return (p.heard_sound && p.sound_age_ticks <= prof.sound_memory_ticks) ||
+        (p.player_visible && p.alert < prof.alert_detect_threshold);
     case 'arrived_and_quiet': return p.arrived_at_target && !p.player_visible;
-    case 'in_attack_range': return p.player_visible && p.player_dist <= 1.38;
-    case 'out_of_range': return p.player_visible && p.player_dist > 1.38;
-    case 'lost_sight_long': return !p.player_visible && p.lost_sight_ticks >= 48;
-    case 'search_expired': return !p.player_visible && p.search_ticks >= 95;
+    case 'in_attack_range': return p.player_visible && p.player_dist <= prof.attack_range;
+    case 'out_of_range':
+      return (p.player_visible && p.player_dist > prof.attack_range) ||
+        (!p.player_visible && p.lost_sight_ticks < prof.lost_sight_limit);
+    case 'lost_sight_long': return !p.player_visible && p.lost_sight_ticks >= prof.lost_sight_limit;
+    case 'search_expired':
+      return !p.player_visible &&
+        p.search_ticks >= prof.search_duration_limit &&
+        p.alert <= prof.alert_calm_threshold;
     case 'at_route_start': return p.at_route_start;
     default: return false;
   }
 }
+
+ai.btTree = globalThis.GUARD_BT.makeGuardBehaviorTree(evalGuardPredicate);
 
 function recordTransition(src, dst, guardName) {
   if (src === dst) return;
   ai.state = dst;
   ai.firings += 1;
   ai.lastTransition = { src, dst, guard: guardName, tick: ai.percepts.tick };
+  const prof = activeProfile();
 
   const quotes = {
-    patrol: 'Token moved to p_patrol (∑ tokens = 1). Guard resuming house patrol circuit.',
+    patrol: `Token moved to p_patrol (∑ tokens = 1). ${prof.label} Guard resuming house patrol circuit.`,
     investigate: `Guard heard ${ai.soundWave ? ai.soundWave.label : 'a noise'}! Moving to inspect sound origin.`,
-    chase: 'INTRUDER SPOTTED in FOV cone! Guard preempted patrol to chase the Thief!',
-    attack: 'Guard closed within 1.35 tiles — tackling the Thief!',
+    chase: `INTRUDER SPOTTED in ${prof.label} FOV cone! Guard preempted patrol to chase the Thief!`,
+    attack: `Guard closed within ${nfOne.format(prof.attack_range)} tiles — tackling the Thief!`,
     search: 'Thief broke line of sight! Guard scanning last known coordinates.',
-    return: 'Search timer expired with no visual contact; returning to patrol route.',
+    return: 'Search timer expired and alert cooled down; returning to route start.',
   };
 
   pushFeedCard({
     time: `Tick ${nfInt.format(ai.percepts.tick)}`,
-    arch: ai.arch === 'FSM' ? 'FSM · Petri Net' : 'Reactive BT',
+    arch: `${ai.arch === 'FSM' ? 'FSM · Petri Net' : 'Reactive BT'} · ${prof.label}`,
     isLoot: false,
     tag: guardName,
     title: `${src.toUpperCase()} → ${dst.toUpperCase()}`,
@@ -654,6 +666,7 @@ function recordTransition(src, dst, guardName) {
 
 function stepSimulation(dt) {
   if (thief.outcome) return;
+  const prof = activeProfile();
   ai.percepts.tick += 1;
   const tick = ai.percepts.tick;
 
@@ -731,11 +744,14 @@ function stepSimulation(dt) {
   }
 
   let heardSound = false;
+  let soundAge = 999;
   if (ai.soundWave) {
     ai.soundWave.r += dt * 5.2;
     ai.soundWave.age += 1;
+    soundAge = ai.soundWave.age;
     const distGuardToSound = Math.hypot(guard.I - ai.soundWave.I, guard.J - ai.soundWave.J);
-    if (distGuardToSound <= ai.soundWave.maxR + 2.5 && ai.soundWave.age <= 42) {
+    const effectiveRadius = (ai.soundWave.maxR + 2.5) * prof.hearing_scale;
+    if (distGuardToSound <= effectiveRadius && ai.soundWave.age <= prof.sound_memory_ticks) {
       heardSound = true;
       ai.lastSeenPos = { I: ai.soundWave.I, J: ai.soundWave.J };
     }
@@ -748,59 +764,60 @@ function stepSimulation(dt) {
   while (relAngle > Math.PI) relAngle -= Math.PI * 2;
   while (relAngle < -Math.PI) relAngle += Math.PI * 2;
 
-  const inCone = distToPlayer <= 5.4 && Math.abs(relAngle) <= 0.60;
-  const closeProximity = distToPlayer <= 1.25;
+  const inCone = distToPlayer <= prof.fov_distance && Math.abs(relAngle) <= prof.fov_half_angle;
+  const closeProximity = distToPlayer <= prof.close_proximity;
   const visible = (inCone || closeProximity) && hasLineOfSight(guard.I, guard.J, thief.I, thief.J);
-
-  ai.percepts.player_visible = visible;
-  ai.percepts.player_dist = distToPlayer;
-  ai.percepts.player_angle = relAngle;
-  ai.percepts.heard_sound = heardSound;
 
   if (visible) {
     ai.lastSeenPos = { I: thief.I, J: thief.J };
     ai.percepts.lost_sight_ticks = 0;
     ai.percepts.search_ticks = 0;
-    ai.alert = Math.min(1, ai.alert + dt * 0.75);
+    const boost = distToPlayer <= prof.close_proximity * 1.5 ? 1.35 : 1.0;
+    ai.alert = Math.min(1, Math.max(ai.alert, prof.alert_detect_threshold) + dt * prof.alert_gain_rate * boost);
   } else {
     ai.percepts.lost_sight_ticks += 1;
     if (ai.state === 'search') ai.percepts.search_ticks += 1;
-    ai.alert = heardSound ? Math.max(ai.alert, 0.52) : Math.max(0.10, ai.alert - dt * 0.14);
+    else ai.percepts.search_ticks = 0;
+    ai.alert = heardSound
+      ? Math.max(ai.alert, Math.min(0.85, Math.max(0.42, prof.alert_detect_threshold + 0.22)))
+      : Math.max(0.08, ai.alert - dt * prof.alert_decay_rate);
   }
+
+  ai.percepts.player_visible = visible;
+  ai.percepts.player_dist = distToPlayer;
+  ai.percepts.player_angle = relAngle;
+  ai.percepts.heard_sound = heardSound;
+  ai.percepts.sound_age_ticks = soundAge;
+  ai.percepts.alert = ai.alert;
 
   if (ai.arch === 'FSM') {
     for (const rule of FSM_TABLE) {
-      if (rule.src === ai.state && evalGuardPredicate(rule.guard, ai.percepts)) {
+      if (rule.src === ai.state && evalGuardPredicate(rule.guard, ai.percepts, prof)) {
         recordTransition(ai.state, rule.dst, rule.guard);
         break;
       }
     }
-    ai.btActivePath = `Petri marking: p_${ai.state} = 1 (∑ tokens = 1 · mutex)`;
+    ai.btActivePath = `Petri marking: p_${ai.state} = 1 (∑ tokens = 1 · ${prof.label})`;
   } else {
-    let nextState = ai.state, guardUsed = 'bt_tick';
-    if (visible && distToPlayer <= 1.38) {
-      nextState = 'attack'; guardUsed = 'in_attack_range';
-      ai.btActivePath = 'ReactiveSelector > Sequence[Attack] > Act:tackle (RUNNING)';
-    } else if (visible) {
-      nextState = 'chase'; guardUsed = 'player_visible';
-      ai.btActivePath = 'ReactiveSelector > Sequence[Chase] > Act:pursue (RUNNING)';
-    } else if (heardSound) {
-      nextState = 'investigate'; guardUsed = 'heard_sound';
-      ai.btActivePath = 'ReactiveSelector > Sequence[Investigate] > Act:inspect_noise (RUNNING)';
-    } else if ((ai.state === 'chase' || ai.state === 'attack') && ai.percepts.lost_sight_ticks >= 38) {
-      nextState = 'search'; guardUsed = 'lost_sight_long';
-      ai.btActivePath = 'ReactiveSelector > Sequence[Search] > Act:scan_area (RUNNING)';
-    } else if (ai.state === 'search' && ai.percepts.search_ticks >= 85) {
-      nextState = 'patrol'; guardUsed = 'search_expired';
-      ai.btActivePath = 'ReactiveSelector > Act:patrol (RUNNING)';
-    } else if (ai.state !== 'search' && ai.state !== 'investigate') {
-      nextState = 'patrol'; guardUsed = 'route_assigned';
-      ai.btActivePath = 'ReactiveSelector > Act:patrol (RUNNING)';
+    const bb = {
+      percepts: ai.percepts,
+      profile: prof,
+      prevState: ai.state,
+      latchState: ai.state,
+      activeLeaf: ai.state,
+      guardReason: 'bt_priority',
+      trace: [],
+      abortedNodes: [],
+    };
+    ai.btTree.tick(bb);
+    ai.btActivePath = globalThis.GUARD_BT.formatActiveTrace(bb);
+    if (bb.activeLeaf !== ai.state) {
+      const reason = bb.abortedNodes.length ? `preempt:${bb.abortedNodes[0]}` : bb.guardReason;
+      recordTransition(ai.state, bb.activeLeaf, reason);
     }
-    if (nextState !== ai.state) recordTransition(ai.state, nextState, guardUsed);
   }
 
-  let goalI = guard.I, goalJ = guard.J, speedMul = 0.82;
+  let goalI = guard.I, goalJ = guard.J, speedMul = prof.patrol_speed;
   if (ai.state === 'patrol') {
     const wp = PATROL_WAYPOINTS[ai.wpIndex];
     goalI = wp[0]; goalJ = wp[1];
@@ -812,7 +829,7 @@ function stepSimulation(dt) {
   } else if (ai.state === 'investigate') {
     const target = ai.lastSeenPos || { I: 6.5, J: 11.5 };
     goalI = target.I; goalJ = target.J;
-    speedMul = 1.05;
+    speedMul = prof.investigate_speed;
     guard.mood = 'think';
     guard.act = 'roll';
     if (Math.hypot(goalI - guard.I, goalJ - guard.J) < 0.8) {
@@ -823,7 +840,7 @@ function stepSimulation(dt) {
   } else if (ai.state === 'chase') {
     const target = visible ? thief : (ai.lastSeenPos || thief);
     goalI = target.I; goalJ = target.J;
-    speedMul = 1.24;
+    speedMul = prof.chase_speed;
     guard.mood = '';
     guard.act = 'roll';
     thief.hp = Math.min(100, thief.hp + dt * 4);
@@ -846,6 +863,7 @@ function stepSimulation(dt) {
   } else if (ai.state === 'return') {
     const wp = PATROL_WAYPOINTS[0];
     goalI = wp[0]; goalJ = wp[1];
+    speedMul = prof.patrol_speed;
     ai.percepts.at_route_start = Math.hypot(goalI - guard.I, goalJ - guard.J) < 0.85;
     guard.mood = '';
     guard.act = 'roll';
@@ -886,7 +904,8 @@ function drawHeistOverlaysOnFloor() {
   H.outline(H.RB, escPoly, quotaReady ? 'teal' : 'blue', 1.6 * dpr, { dash: [5 * dpr, 4 * dpr], amp: 0.05 });
 
   const ink = STATE_INK[ai.state] || 'teal';
-  const fovLen = 5.2, half = 0.60, steps = 14;
+  const prof = activeProfile();
+  const fovLen = prof.fov_distance, half = prof.fov_half_angle, steps = 14;
   const pts = [[devX(P.isoX(guard.I, guard.J)), devY(P.isoY(guard.I, guard.J, 0.02))]];
   for (let s = 0; s <= steps; s++) {
     const a = guard.angle - half + (s / steps) * (half * 2);
@@ -1020,11 +1039,12 @@ function updateDomOverlays() {
   }
 
   // Normal live Demo Data mode
+  const prof = activeProfile();
   $('#header-bot-name').textContent = 'Dither';
   $('#glance-state-text').textContent = ai.state.toUpperCase();
   $('#glance-state-text').title = ai.state;
   $('#glance-dot').style.background = STATE_CSS[ai.state] || '#008c8a';
-  $('#glance-arch-text').textContent = ai.arch === 'FSM' ? 'FSM · Petri' : 'Reactive BT';
+  $('#glance-arch-text').textContent = `${ai.arch} · ${prof.label}`;
   const pct = Math.round(clampNum(ai.alert * 100, 0, 100));
   $('#glance-bar-fill').style.width = `${pct}%`;
   const trText = `${ai.lastTransition.src} → ${ai.lastTransition.dst}`;
@@ -1054,7 +1074,7 @@ function updateDomOverlays() {
   $('#loot-status').textContent = thief.stolenValue >= HEIST_QUOTA
     ? 'QUOTA MET! Escape at Front Door!'
     : `stolen · quota ${money(HEIST_QUOTA)}`;
-  $('#panel-arch-badge').textContent = `Guard: ${ai.state.toUpperCase()} (${ai.arch})`;
+  $('#panel-arch-badge').textContent = `Guard: ${ai.state.toUpperCase()} (${ai.arch} · ${prof.label})`;
   $('#panel-trip').classList.toggle('is-now', ai.state === 'chase' || ai.state === 'attack');
   $('#p-dist').textContent = `${nfOne.format(ai.percepts.player_dist)} tiles`;
   $('#p-los').textContent = ai.percepts.player_visible ? 'SPOTTED!' : 'hidden (pos=None)';
@@ -1377,6 +1397,26 @@ $('#mode-auto-btn').addEventListener('click', () => {
 $('#arch-switch-btn').addEventListener('click', () => {
   ai.arch = ai.arch === 'FSM' ? 'BT' : 'FSM';
   $('#arch-switch-btn').textContent = `Guard: ${ai.arch}`;
+  updateDomOverlays();
+});
+
+$('#profile-switch-btn')?.addEventListener('click', () => {
+  const curIdx = PROFILE_ORDER.indexOf(ai.profileId);
+  ai.profileId = PROFILE_ORDER[(curIdx + 1) % PROFILE_ORDER.length];
+  const prof = activeProfile();
+  $('#profile-switch-btn').textContent = `Trait: ${prof.label}`;
+  pushFeedCard({
+    time: `Tick ${nfInt.format(ai.percepts.tick)}`,
+    arch: `${ai.arch} · ${prof.label}`,
+    isLoot: false,
+    tag: `fov ${nfOne.format(prof.fov_distance)}t`,
+    title: `Switched Guard Personality → ${prof.label}`,
+    sub: `(alert gate ${Math.round(prof.alert_detect_threshold * 100)}%)`,
+    badge: prof.id,
+    metaText: prof.summary,
+    quote: `Guard now uses ${prof.label} perception and decision thresholds.`,
+    note: `FOV=${nfOne.format(prof.fov_distance)}t · Tackle=${nfOne.format(prof.attack_range)}t · Search=${prof.search_duration_limit} ticks`,
+  });
   updateDomOverlays();
 });
 

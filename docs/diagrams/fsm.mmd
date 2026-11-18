@@ -1,0 +1,20 @@
+stateDiagram-v2
+    direction LR
+    [*] --> idle
+    idle --> chase : player_visible
+    idle --> investigate : heard_sound
+    idle --> patrol : route_assigned
+    patrol --> chase : player_visible
+    patrol --> investigate : heard_sound
+    investigate --> chase : player_visible
+    investigate --> search : arrived_and_quiet
+    chase --> attack : in_attack_range
+    chase --> search : lost_sight_long
+    attack --> chase : out_of_range
+    attack --> search : lost_sight_long
+    search --> chase : player_visible
+    search --> investigate : heard_sound
+    search --> return : search_expired
+    return --> chase : player_visible
+    return --> investigate : heard_sound
+    return --> patrol : at_route_start

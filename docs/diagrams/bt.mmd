@@ -1,0 +1,42 @@
+flowchart TD
+    n1_root_selector{"? ReactiveSelector\nroot_selector"}
+    n2_seq_attack["-> Sequence [P1]\nseq_attack"]
+    n1_root_selector --> n2_seq_attack
+    n3_cond_visible(["Cond: cond_visible"])
+    n2_seq_attack --> n3_cond_visible
+    n4_cond_in_range(["Cond: cond_in_range"])
+    n2_seq_attack --> n4_cond_in_range
+    n5_attack[/"Act: attack"/]
+    n2_seq_attack --> n5_attack
+    n6_seq_chase["-> Sequence [P2]\nseq_chase"]
+    n1_root_selector --> n6_seq_chase
+    n7_cond_visible_or_pursuing(["Cond: cond_visible_or_pursuing"])
+    n6_seq_chase --> n7_cond_visible_or_pursuing
+    n8_chase[/"Act: chase"/]
+    n6_seq_chase --> n8_chase
+    n9_seq_investigate["-> Sequence [P3]\nseq_investigate"]
+    n1_root_selector --> n9_seq_investigate
+    n10_cond_heard_sound(["Cond: cond_heard_sound"])
+    n9_seq_investigate --> n10_cond_heard_sound
+    n11_investigate[/"Act: investigate"/]
+    n9_seq_investigate --> n11_investigate
+    n12_seq_search["-> Sequence [P4]\nseq_search"]
+    n1_root_selector --> n12_seq_search
+    n13_cond_lost_or_arrived(["Cond: cond_lost_or_arrived"])
+    n12_seq_search --> n13_cond_lost_or_arrived
+    n14_search[/"Act: search"/]
+    n12_seq_search --> n14_search
+    n15_seq_return["-> Sequence [P5]\nseq_return"]
+    n1_root_selector --> n15_seq_return
+    n16_cond_search_expired(["Cond: cond_search_expired"])
+    n15_seq_return --> n16_cond_search_expired
+    n17_return[/"Act: return"/]
+    n15_seq_return --> n17_return
+    n18_seq_patrol["-> Sequence [P6]\nseq_patrol"]
+    n1_root_selector --> n18_seq_patrol
+    n19_cond_route_assigned(["Cond: cond_route_assigned"])
+    n18_seq_patrol --> n19_cond_route_assigned
+    n20_patrol[/"Act: patrol"/]
+    n18_seq_patrol --> n20_patrol
+    n21_idle[/"Act: idle"/]
+    n1_root_selector --> n21_idle

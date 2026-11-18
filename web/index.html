@@ -131,11 +131,11 @@
         </button>
       </div>
       <p class="cta-sub">Move with <strong>WASD / Arrow keys</strong> or <strong>click any floor tile</strong>. Click a gold-tagged item to sneak to it and steal it. Escape at the <strong>Front Door</strong> (top-left of the studio).</p>
-      <div class="scenario-bar" role="group" aria-label="Game mode and AI architecture">
+      <div class="scenario-bar" role="group" aria-label="Game mode, personality, and AI architecture">
         <button type="button" id="mode-play-btn" class="is-active">Play as Thief</button>
         <button type="button" id="mode-auto-btn">AI Thief Bot</button>
         <button type="button" id="arch-switch-btn">Guard: FSM</button>
-        <button type="button" data-scn="sound">Make Noise</button>
+        <button type="button" id="profile-switch-btn" title="Cycle NPC Guard Personality">Trait: Standard</button>
         <button type="button" data-scn="lure">Lure Guard</button>
         <button type="button" id="reset-heist-btn">New Heist</button>
       </div>
@@ -164,11 +164,13 @@
 </nav>
 
 <script src="js/data.js"></script>
+<script src="js/guard_config.js"></script>
+<script src="js/bt.js"></script>
 <script src="js/press.js"></script>
 <script src="js/world.js"></script>
 <script src="js/kinds.js"></script>
 <script src="js/robot.js"></script>
 <script src="js/scene.js"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

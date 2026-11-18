@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Frischemarkt Heist — Supermarket Stealth vs. Security AI</title>
+<meta name="description" content="A tense supermarket stealth heist. Steal high-value goods, dodge CCTV and staff, disable the cameras, de-tag RF labels, and slip out through the EAS gate.">
+<meta name="theme-color" content="#f3ebdd">
+<meta name="color-scheme" content="light">
+<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="market.css?v=8">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1 class="title">Frischemarkt <span class="bot-name" id="header-bot-name">Heist</span></h1>
+    <p class="lede">Enter through the red arch. Steal <strong id="header-quota">€190</strong> of goods, disable the CCTV panel, force the spirits vitrine, strip every RF tag, and leave through the EAS gate. Cameras, staff and a 7-state Detective are watching. Stay still and out of sight while you work.</p>
+    <nav class="game-nav" aria-label="Game selection">
+      <a href="index.html" class="game-nav-link">← The Heist at Dither's House</a>
+      <span class="game-nav-current" aria-current="page">Frischemarkt Heist</span>
+    </nav>
+  </header>
+
+  <main class="view" id="view" aria-label="The supermarket. Use WASD or click to sneak, hold E to steal, C to crouch, Q to toss a decoy.">
+    <canvas id="stage" aria-hidden="true"></canvas>
+
+    <div class="heist-hud-pill" id="heist-hud-pill">
+      <span class="heist-key">WASD / Click</span> Sneak
+      <span class="heist-sep">&middot;</span>
+      <span class="heist-key">Hold E</span> Steal
+      <span class="heist-sep">&middot;</span>
+      <span class="heist-key">C</span> Crouch
+      <span class="heist-sep">&middot;</span>
+      <span class="heist-key">Q</span> Decoy
+    </div>
+
+    <div class="zone-strip" id="zone-strip" hidden><span class="zone-kicker">ZONE</span> <strong id="zone-name">Obst &amp; Gemüse</strong></div>
+
+    <div class="heist-banner" id="heist-banner" hidden>
+      <p class="heist-banner-kicker" id="banner-kicker">DETAINED BY STORE DETECTIVE</p>
+      <h2 class="heist-banner-title" id="banner-title">Busted in the Store!</h2>
+      <p class="heist-banner-sub" id="banner-sub">The Detective caught you. Your haul is gone.</p>
+      <button type="button" class="cta" id="banner-retry-btn"><span>New Shift</span> <span>&rarr;</span></button>
+    </div>
+
+    <div class="glance-tether" id="glance-tether">
+      <div class="glance-top">
+        <span class="glance-state">
+          <span class="glance-dot" id="glance-dot"></span>
+          <span id="glance-state-text">PATROL</span>
+        </span>
+        <span class="glance-arch" id="glance-arch-text">FSM · Standard</span>
+      </div>
+      <div class="glance-bar"><span class="glance-bar-fill" id="glance-bar-fill"></span></div>
+      <div class="glance-rule">
+        <span id="glance-rule-srcdst">return → patrol</span>
+        <span class="glance-guard-tag" id="glance-rule-guard">at_route_start</span>
+      </div>
+    </div>
+
+    <div class="thief-prompt" id="thief-prompt" hidden>
+      <span class="thief-prompt-key">E</span> <span id="thief-prompt-text">Steal goods</span>
+    </div>
+
+    <p class="hint" id="hint" hidden></p>
+    <div class="zoom" role="group" aria-label="Zoom">
+      <button type="button" data-zoom="in" aria-label="Closer">+</button>
+      <button type="button" data-zoom="out" aria-label="Further">&minus;</button>
+      <button type="button" data-zoom="fit" aria-label="See the whole store"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7V3h4M13 3h4v4M17 13v4h-4M7 17H3v-4"/></svg></button>
+    </div>
+    <p class="loading" id="loading">stocking the shelves&hellip;</p>
+  </main>
+
+  <aside class="panel">
+    <section class="wallet" aria-label="Heist status">
+      <div class="wallet-top">
+        <p class="balance" id="state-balance"><span class="balance-n" id="loot-total">€0</span> <span class="balance-w" id="loot-status">stolen · quota €190</span></p>
+        <p class="trip" id="panel-trip"><span class="trip-dot" aria-hidden="true"></span><span class="trip-t" id="panel-arch-badge">Detective: PATROL (FSM)</span></p>
+      </div>
+
+      <div class="heat-block">
+        <div class="heat-top">
+          <span class="heat-kicker">STORE HEAT</span>
+          <strong class="heat-label" id="heat-label">Curious</strong>
+        </div>
+        <div class="heat-spine" id="heat-spine" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="1">
+          <span class="heat-notch"></span><span class="heat-notch"></span><span class="heat-notch"></span><span class="heat-notch"></span><span class="heat-notch"></span>
+        </div>
+        <p class="heat-note" id="heat-note">a noise caught their ear</p>
+      </div>
+
+      <div class="objectives">
+        <p class="objectives-kicker">HEIST PLAN <span id="bag-count">0 / 3 bag</span></p>
+        <ul class="objective-list" id="objective-list"></ul>
+      </div>
+
+      <p class="status-line" id="heist-status">Enter through the red arch. Stay low and quiet.</p>
+
+      <details class="telemetry" id="telemetry">
+        <summary>Security telemetry</summary>
+        <p class="sums" id="panel-percepts">Detective dist <span class="earned" id="p-dist">10.0 tiles</span> &middot; LOS <strong id="p-los">hidden</strong> &middot; Cover <strong id="p-hp">100%</strong></p>
+        <ul class="rates">
+          <li>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.2" fill="currentColor"/></svg>
+            <span class="rate-top"><span class="rate-n" id="rate-place">p_patrol</span></span>
+            <span class="rate-x" id="rate-nearest-loot">Petri net (1 token)</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h12l-1 10H5z"/><path d="M7.5 7V5.5a2.5 2.5 0 0 1 5 0V7"/></svg>
+            <span class="rate-top"><span class="rate-n" id="rate-loot-count">0 / 10</span> <span class="rate-l">goods</span></span>
+            <span class="rate-x" id="tag-count">0 active RF tag(s)</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 10s3-5 8-5 8 5 8 5-3 5-8 5-8-5-8-5z"/><circle cx="10" cy="10" r="2.2"/></svg>
+            <span class="rate-top"><span class="rate-n" id="rate-fov">Hidden</span></span>
+            <span class="rate-x">3 sweeping CCTV cameras</span>
+          </li>
+          <li>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>
+            <span class="rate-top"><span class="rate-n" id="rate-firings">0</span> <span class="rate-l" id="rate-firings-label">switches</span></span>
+            <span class="rate-x" id="rate-guard-last">rule: route_assigned</span>
+          </li>
+        </ul>
+        <div class="goal">
+          <p class="goal-what">Store suspicion &middot; <span class="goal-name" id="alert-tier">Calm (routine shelf patrol)</span></p>
+          <div class="bar" id="alert-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="12"><span class="bar-fill" id="alert-bar-fill"></span></div>
+          <p class="goal-n" id="alert-numbers">12% suspicion · 0 RF tags · 0/3 CCTV on you</p>
+        </div>
+        <p class="ideas" id="bt-active-pill" aria-live="polite"></p>
+      </details>
+    </section>
+
+    <section class="help" aria-label="Shoplifting actions and AI controller">
+      <div class="action-row">
+        <button type="button" class="cta cta-half" id="steal-btn">
+          <span><strong>Hold E to steal</strong></span><span aria-hidden="true">+$</span>
+        </button>
+        <button type="button" class="cta cta-half cta-secondary" id="coin-btn">
+          <span><strong>Toss Coin (Q)</strong></span><span aria-hidden="true">)))</span>
+        </button>
+      </div>
+      <p class="cta-sub">Stealing takes time. Stay still and out of sight until the action completes. Moving or being seen cancels it. Crouch with <strong>C</strong> to cool heat faster. High-value goods unlock after you force the vitrine.</p>
+      <div class="scenario-bar" role="group" aria-label="Game mode, personality, and AI architecture">
+        <button type="button" id="mode-play-btn" class="is-active">Play as Shoplifter</button>
+        <button type="button" id="mode-auto-btn">AI Shoplifter Bot</button>
+        <button type="button" id="arch-switch-btn">Guard: FSM</button>
+        <button type="button" id="profile-switch-btn" title="Cycle Detective Personality">Trait: Standard</button>
+        <button type="button" data-scn="lure">Lure Staff</button>
+        <button type="button" id="reset-heist-btn">New Shift</button>
+      </div>
+    </section>
+
+    <section class="log" aria-label="Shoplifting and security AI decision feed">
+      <h2>Store security journal</h2>
+      <ol class="feed" id="feed"></ol>
+      <button type="button" class="more" id="more" hidden>Show earlier</button>
+    </section>
+
+    <footer class="foot">
+      <p>A guided-path REWE layout. Powered by the same single-source 7-state FSM / 1-token Petri Net / Reactive Behavior Tree as Project 2.</p>
+    </footer>
+  </aside>
+</div>
+
+<nav class="break-ui-toggle" aria-label="Break-UI dataset mode">
+  <button type="button" data-break-mode="demo" data-active>Demo data</button>
+  <button type="button" data-break-mode="worst">Worst case</button>
+  <button type="button" data-break-mode="empty">Empty</button>
+  <button type="button" data-break-mode="one">One</button>
+  <button type="button" data-break-mode="huge">1,000 rows</button>
+</nav>
+
+<script src="js/data.js"></script>
+<script src="js/guard_config.js"></script>
+<script src="js/bt.js"></script>
+<script src="js/heist.js?v=2"></script>
+<script src="js/detection.js?v=2"></script>
+<script src="js/navpath.js?v=1"></script>
+<script src="js/market.js?v=7"></script>
+<script src="js/press.js"></script>
+<script src="js/world.js"></script>
+<script src="js/kinds.js"></script>
+<script src="js/robot.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/market-app.js?v=28"></script>
+</body>
+</html>

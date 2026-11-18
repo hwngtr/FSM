@@ -86,9 +86,9 @@ def reachable_fsm_states(rules: tuple[Rule, ...] = FSM_TABLE, initial: State = S
     return visited
 
 
-def verify_bisimulation(rules: tuple[Rule, ...] = FSM_TABLE) -> bool:
+def verify_bisimulation(rules: tuple[Rule, ...] = FSM_TABLE, net: PetriNet | None = None) -> bool:
     """Verify that the FSM transition table and generated PetriNet have identical transition relations."""
-    net = build_petri_net(rules)
+    net = net or build_petri_net(rules)
     all_guards = {r.guard for r in rules}
 
     for state in State:
