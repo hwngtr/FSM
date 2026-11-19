@@ -27,6 +27,15 @@
   font-weight: 700;
 }
 
+.app.is-game-fullscreen { display: block; }
+.app.is-game-fullscreen .top,
+.app.is-game-fullscreen .panel { display: none; }
+.app.is-game-fullscreen .view {
+  position: fixed; inset: 0; z-index: 1000;
+  width: 100vw; height: 100vh; height: 100dvh;
+}
+.view:fullscreen { background: var(--paper); }
+
 /* Heist layer: one readable heat signal and a short objective checklist. */
 .heat-block {
   margin: 12px 0 10px; padding: 10px 12px; background: var(--card);

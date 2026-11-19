@@ -1320,9 +1320,45 @@ stage.addEventListener('wheel', (e) => {
   e.preventDefault(); wheelAcc += e.deltaY * (e.deltaMode ? 30 : 1);
   if (Math.abs(wheelAcc) > 60) { zoomBy(wheelAcc < 0 ? 1 : -1, ...at(e)); wheelAcc = 0; }
 }, { passive: false });
+const app = document.querySelector('.app');
+const fullscreenButton = document.querySelector('[data-zoom="fit"]');
+function isGameFullscreen() {
+  return document.fullscreenElement === view || app.classList.contains('is-game-fullscreen');
+}
+function syncFullscreenControl() {
+  const active = isGameFullscreen();
+  fullscreenButton.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
+  fullscreenButton.setAttribute('aria-pressed', String(active));
+}
+function setGameFullscreen(active) {
+  app.classList.toggle('is-game-fullscreen', active);
+  userCam = false;
+  syncFullscreenControl();
+  requestAnimationFrame(() => fitTo(worldBounds(), false));
+}
+function toggleGameFullscreen() {
+  if (isGameFullscreen()) {
+    setGameFullscreen(false);
+    if (document.fullscreenElement === view) {
+      void document.exitFullscreen().catch(() => setGameFullscreen(false));
+    }
+    return;
+  }
+  setGameFullscreen(true);
+  if (typeof view.requestFullscreen === 'function') {
+    void view.requestFullscreen().catch(() => setGameFullscreen(true));
+  }
+}
 for (const b of document.querySelectorAll('[data-zoom]')) b.addEventListener('click', () => {
   const z = b.dataset.zoom;
-  if (z === 'fit') { userCam = false; fitTo(worldBounds(), true); } else zoomBy(z === 'in' ? 1 : -1);
+  if (z === 'fit') toggleGameFullscreen();
+  else zoomBy(z === 'in' ? 1 : -1);
+});
+document.addEventListener('fullscreenchange', () => setGameFullscreen(document.fullscreenElement === view));
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && document.fullscreenElement !== view && app.classList.contains('is-game-fullscreen')) {
+    setGameFullscreen(false);
+  }
 });
 
 function holdFor(loot) { return 1.4 + (loot.meta.value / 70) * 2.2; }
