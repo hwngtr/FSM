@@ -57,12 +57,12 @@
 .zone-strip {
   position: absolute; top: 66px; left: 12px; right: auto; z-index: 24;
   display: inline-flex; align-items: baseline; gap: 8px;
-  max-width: 280px; padding: 6px 10px; background: var(--card);
+  max-width: min(280px, calc(100% - 24px)); padding: 6px 10px; background: var(--card);
   border: 1.5px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
   transition: opacity 0.5s; white-space: nowrap; overflow: hidden;
 }
 .zone-kicker { font-size: 0.64rem; letter-spacing: 0.10em; font-weight: 800; opacity: 0.75; }
-.zone-strip strong { font-size: 0.86rem; overflow: hidden; text-overflow: ellipsis; }
+.zone-strip strong { min-width: 0; font-size: 0.86rem; overflow: hidden; text-overflow: ellipsis; }
 .zone-strip.is-fading { opacity: 0; }
 
 /* Compact NPC readout: the bubble must not hide the floor plan. */
@@ -99,5 +99,7 @@
 @keyframes hud-pill-out { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .heist-hud-pill { animation: none; } }
 
-/* The break-mode toggle must not sit on the bottom status text. */
-.break-ui-toggle { left: auto; right: 14px; transform: none; }
+/* Keep the drawer's controls in the shared riso-print style. */
+.break-ui-drawer .break-ui-toggle button { color: var(--ink); border: 1px solid var(--line); border-radius: 0; }
+.break-ui-drawer .break-ui-toggle button:hover,
+.break-ui-drawer .break-ui-toggle button[data-active] { background: var(--sun); color: var(--ink); }

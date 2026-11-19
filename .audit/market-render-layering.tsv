@@ -1,0 +1,2 @@
+ts	phase	decision	why	evidence	result
+2026-11-18T15:10:12Z	frame	fix market wall occlusion and CCTV vision/housing alignment only	user reports fixtures render in front of adjacent walls and CCTV fan/housing anchors disagree	user report	open

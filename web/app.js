@@ -1015,19 +1015,19 @@ function updateDomOverlays() {
     $('#panel-arch-badge').textContent = `Guard: ${middleTruncate(fx.state.toUpperCase(), 22)} (${middleTruncate(fx.archLabel, 18)})`;
     $('#panel-arch-badge').title = `Guard: ${fx.state} (${fx.archLabel})`;
     $('#p-dist').textContent = `${nfOne.format(clampNum(fx.dist, 0, 999))} tiles`;
-    $('#p-los').textContent = clampedAlertPct > 50 ? 'SPOTTED!' : 'hidden';
+    $('#p-los').textContent = clampedAlertPct > 50 ? 'SPOTTED!' : 'Hidden';
     $('#p-hp').textContent = `${clampedHp}%`;
 
     const fullPlace = `p_${fx.state}`;
-    $('#rate-place').textContent = fullPlace;
-    $('#rate-place').title = fullPlace;
+    $('#rate-place').textContent = fx.state.split('_')[0][0].toUpperCase() + fx.state.split('_')[0].slice(1);
+    $('#rate-place').title = `Petri place: ${fullPlace}`;
     $('#rate-loot-count').textContent = fx.lootCountText;
     $('#rate-nearest-loot').textContent = fx.nearestLootText;
     $('#rate-nearest-loot').title = fx.nearestLootText;
     $('#rate-fov').textContent = clampedAlertPct > 50 ? 'SPOTTED' : 'Hidden';
     $('#rate-firings').textContent = nfInt.format(safeFirings);
     $('#rate-firings-label').textContent = pluralEn.select(safeFirings) === 'one' ? 'switch' : 'switches';
-    $('#rate-guard-last').textContent = `rule: ${fx.guardRule}`;
+    $('#rate-guard-last').textContent = `Last transition: ${fx.src} → ${fx.dst}`;
     $('#rate-guard-last').title = `rule: ${fx.guardRule}`;
 
     $('#alert-bar-fill').style.width = `${clampedAlertPct}%`;
@@ -1077,11 +1077,11 @@ function updateDomOverlays() {
   $('#panel-arch-badge').textContent = `Guard: ${ai.state.toUpperCase()} (${ai.arch} · ${prof.label})`;
   $('#panel-trip').classList.toggle('is-now', ai.state === 'chase' || ai.state === 'attack');
   $('#p-dist').textContent = `${nfOne.format(ai.percepts.player_dist)} tiles`;
-  $('#p-los').textContent = ai.percepts.player_visible ? 'SPOTTED!' : 'hidden (pos=None)';
+  $('#p-los').textContent = ai.percepts.player_visible ? 'SPOTTED!' : 'Hidden';
   $('#p-hp').textContent = `${Math.round(clampNum(thief.hp, 0, 100))}%`;
 
-  $('#rate-place').textContent = `p_${ai.state}`;
-  $('#rate-place').title = `p_${ai.state}`;
+  $('#rate-place').textContent = ai.state.split('_')[0][0].toUpperCase() + ai.state.split('_')[0].slice(1);
+  $('#rate-place').title = `Petri place: p_${ai.state}`;
   $('#rate-loot-count').textContent = `${thief.stolenIds.size} / ${LOOT_TARGETS.size}`;
   const nearText = nearLoot
     ? `next: ${nearLoot.meta.label} (${money(nearLoot.meta.value)})`
@@ -1091,7 +1091,7 @@ function updateDomOverlays() {
   $('#rate-fov').textContent = ai.percepts.player_visible ? 'SPOTTED' : 'Hidden';
   $('#rate-firings').textContent = nfInt.format(ai.firings);
   $('#rate-firings-label').textContent = pluralEn.select(ai.firings) === 'one' ? 'switch' : 'switches';
-  $('#rate-guard-last').textContent = `rule: ${ai.lastTransition.guard}`;
+  $('#rate-guard-last').textContent = `Last transition: ${ai.lastTransition.src} → ${ai.lastTransition.dst}`;
   $('#rate-guard-last').title = `rule: ${ai.lastTransition.guard}`;
 
   $('#alert-bar-fill').style.width = `${pct}%`;

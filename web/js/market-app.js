@@ -28,7 +28,8 @@ let house = null, kinds = {}, images = {}, dpr = 1, vw = 0, vh = 0, zi = 7, last
 let heist = null;
 let patrolFrozen = false; // test hook: hold guard and staff still for deterministic mechanic tests
 const traceLog = []; // bounded per-tick record, ported from the FSM supermarket tick log
-const rooms = new Map(), sprites = new Map(), hidden = new Set();
+const rooms = new Map(), sprites = new Map();
+let lastRenderOrder = [];
 const cam = { x: 0, y: 0, z: ZOOMS[zi] };
 let fitZi = 0, tween = null, userCam = false, hover = null, feedShown = 20, roomOrder = null;
 let breakDataMode = 'demo';
@@ -160,8 +161,13 @@ function index() {
     const old = keep.get(rm.id);
     const ver = JSON.stringify(rm) + JSON.stringify(S.edgesOf(shownHouse, rm)) + items
       .filter((it) => S.layerOf(kindOf(it)) !== 'stand')
-      .map((it) => it.id + it.kind + JSON.stringify(it.at) + (hidden.has(it.id) ? 'h' : '') + (images[it.image] ? 'i' : '')).join('|');
-    rooms.set(rm.id, { rm, ox, oy, b: W.roomBounds(rm), items, base: old && old.ver === ver ? old.base : null, ver });
+      .map((it) => it.id + it.kind + JSON.stringify(it.at) + (images[it.image] ? 'i' : '')).join('|');
+    rooms.set(rm.id, {
+      rm, ox, oy, b: W.roomBounds(rm), items,
+      floor: old && old.ver === ver ? old.floor : null,
+      wall: old && old.ver === ver ? old.wall : null,
+      ver,
+    });
   }
   roomOrder = null;
 }
@@ -183,14 +189,23 @@ function printed(w, h, ratio, x0, y0, draw) {
   draw(c);
   return cv;
 }
-function baseOf(R) {
+function floorOf(R) {
   const ratio = ratioNow();
-  if (!R.base || R.base.ratio !== ratio) {
-    const b = R.b, skip = (it) => hidden.has(it.id);
-    R.base = { ratio, cv: printed(b.x1 - b.x0, b.y1 - b.y0, ratio, b.x0, b.y0,
-      (c) => S.drawBase(P.mkHand(c, { seed: 1 }), shownHouse, R.rm, R.items, kinds, images, { skip })) };
+  if (!R.floor || R.floor.ratio !== ratio) {
+    const b = R.b;
+    R.floor = { ratio, cv: printed(b.x1 - b.x0, b.y1 - b.y0, ratio, b.x0, b.y0,
+      (c) => S.drawFloorBase(P.mkHand(c, { seed: 1 }), shownHouse, R.rm, R.items, kinds, images)) };
   }
-  return R.base;
+  return R.floor;
+}
+function wallOf(R) {
+  const ratio = ratioNow();
+  if (!R.wall || R.wall.ratio !== ratio) {
+    const b = R.b;
+    R.wall = { ratio, cv: printed(b.x1 - b.x0, b.y1 - b.y0, ratio, b.x0, b.y0,
+      (c) => S.drawWallBase(P.mkHand(c, { seed: 1 }), shownHouse, R.rm, R.items, kinds, images)) };
+  }
+  return R.wall;
 }
 function spriteOf(it) {
   const ratio = ratioNow(), key = ratio + it.kind + ':' + JSON.stringify(it.at) + (images[it.image] ? 'i' : ''), have = sprites.get(it.id);
@@ -394,8 +409,7 @@ function stealItem(loot) {
   thief.act = 'lift';
   setTimeout(() => { if (!thief.outcome) thief.act = 'idle'; }, 420);
   if (loot.meta.tagged) { thief.taggedIds.add(loot.id); heist.hadTags = true; }
-  hidden.add(loot.id);
-  for (const R of rooms.values()) R.base = null;
+  if (hover === loot.id) hover = null;
   emitSound(loot.ti, loot.tj, loot.meta.noise + 2.2, `stole ${loot.meta.label}`);
 
   pushFeed({
@@ -482,7 +496,6 @@ function resetHeist() {
   $('#heist-banner').hidden = true;
   const retry = $('#banner-retry-btn');
   if (retry) retry.innerHTML = '<span>New Shift</span> <span>&rarr;</span>';
-  hidden.clear();
   for (const R of rooms.values()) R.base = null;
 
   guard.I = 13.5; guard.J = 4.5; guard.angle = 1.5; guard.face = 'sw';
@@ -533,7 +546,6 @@ const PASSABLE_FIXTURES = new Set(['eas-gate', 'rewe-arch', 'aisle-sign', 'store
 function isBlockedTile(I, J) {
   for (const R of rooms.values()) {
     for (const it of R.items) {
-      if (hidden.has(it.id)) continue;
       const k = kindOf(it);
       if (!k || S.layerOf(k) !== 'stand' || PASSABLE_FIXTURES.has(it.kind) || (k.height || 0) < 0.01) continue;
       const tiles = K.footprint(k, it);
@@ -889,8 +901,8 @@ function clippedRayLength(I, J, angle, range) {
   return Math.max(0.25, t);
 }
 // Build a fan polygon whose far edge follows the clipped detection range.
-function visionFan(I, J, angle, half, range, steps) {
-  const pts = [[devX(P.isoX(I, J)), devY(P.isoY(I, J, 0.02))]];
+function visionFan(I, J, angle, half, range, steps, apex) {
+  const pts = [apex || [devX(P.isoX(I, J)), devY(P.isoY(I, J, 0.02))]];
   for (let s = 0; s <= steps; s++) {
     const a = angle - half + (s / steps) * half * 2;
     const r = clippedRayLength(I, J, a, range);
@@ -898,6 +910,15 @@ function visionFan(I, J, angle, half, range, steps) {
     pts.push([devX(P.isoX(ti, tj)), devY(P.isoY(ti, tj, 0.02))]);
   }
   return pts;
+}
+function cameraLens(c) {
+  const gx = devX(P.isoX(c.I, c.J)), gy = devY(P.isoY(c.I, c.J, 2.45));
+  const aimI = c.I + Math.cos(c.angle), aimJ = c.J + Math.sin(c.angle);
+  const aimX = devX(P.isoX(aimI, aimJ)) - devX(P.isoX(c.I, c.J));
+  const aimY = devY(P.isoY(aimI, aimJ, 2.45)) - gy;
+  const aimLength = Math.hypot(aimX, aimY) || 1;
+  const edge = 1 / Math.max(Math.abs(aimX / aimLength) / 8, Math.abs(aimY / aimLength) / 6);
+  return [gx + (aimX / aimLength) * (edge - 2) * dpr, gy + (aimY / aimLength) * (edge - 2) * dpr];
 }
 function drawVisionFan(H, pts, ink, strong) {
   const k = dpr / Math.max(0.35, Math.min(1, cam.z));
@@ -927,32 +948,9 @@ function drawFloorOverlays() {
 
   // CCTV sweep cones — clipped to room walls, light dither only.
   for (const c of cameras) {
-    const fan = visionFan(c.I, c.J, c.angle, c.halfAngle, c.range, 10);
+    const fan = visionFan(c.I, c.J, c.angle, c.halfAngle, c.range, 10, cameraLens(c));
     if (!heist.camerasDisabled) drawVisionFan(H, fan, c.sees ? 'coral' : 'blue', false);
-
-    // Raise the housing to wall height; the sight cone still originates at its floor tile.
-    const gx = devX(P.isoX(c.I, c.J)), gy = devY(P.isoY(c.I, c.J, 2.45));
-    // roundRect takes (x0, y0, x1, y1, r, n) — corner coordinates, not width/height.
-    const body = P.roundRect(gx - 8 * dpr, gy - 10 * dpr, gx + 8 * dpr, gy + 2 * dpr, 2 * dpr, 4);
-    H.fill(body, c.sees ? 'coral' : 'blue', 0.95);
-    H.outline(H.RB, body, 'black', 1.2 * dpr, { tone: 1, amp: 0 });
-    const aimI = c.I + Math.cos(c.angle), aimJ = c.J + Math.sin(c.angle);
-    const aimX = devX(P.isoX(aimI, aimJ)) - devX(P.isoX(c.I, c.J));
-    const aimY = devY(P.isoY(aimI, aimJ, 2.45)) - gy;
-    const aimLength = Math.hypot(aimX, aimY) || 1;
-    const aimXUnit = aimX / aimLength, aimYUnit = aimY / aimLength;
-    const bodyEdge = 1 / Math.max(Math.abs(aimXUnit) / 8, Math.abs(aimYUnit) / 6);
-    const lensX = gx + aimXUnit * (bodyEdge - 2) * dpr;
-    const lensY = gy + aimYUnit * (bodyEdge - 2) * dpr;
-    H.fill(P.circ(lensX, lensY, 2.4 * dpr, 10), c.sees ? 'coral' : 'sun', 1);
-    H.line(H.RB, [
-      [gx + aimXUnit * bodyEdge * dpr, gy + aimYUnit * bodyEdge * dpr],
-      [gx + aimXUnit * (bodyEdge + 5) * dpr, gy + aimYUnit * (bodyEdge + 5) * dpr],
-    ], c.sees ? 'coral' : 'sun', 1.6 * dpr, { amp: 0 });
-    H.line(H.RB, [[gx, gy + 2 * dpr], [gx, gy + 13 * dpr]], 'blue', 1.8 * dpr, { amp: 0 });
-    H.tint(P.roundRect(gx - 10 * dpr, gy + 12 * dpr, gx + 10 * dpr, gy + 14 * dpr, 0, 4), 'charcoal', 0.7);
   }
-
   // Guard FOV cone — clipped to room walls, strong only when chasing or attacking.
   const ink = STATE_INK[ai.state] || 'teal', prof = activeProfile();
   const strong = ai.state === 'chase' || ai.state === 'attack';
@@ -973,8 +971,27 @@ function drawFloorOverlays() {
       const a = s / 24 * Math.PI * 2, ti = ai.soundWave.I + Math.cos(a) * ai.soundWave.r, tj = ai.soundWave.J + Math.sin(a) * ai.soundWave.r;
       ring.push([devX(P.isoX(ti, tj)), devY(P.isoY(ti, tj, 0.05))]);
     }
-    H.outline(H.RB, ring, 'coral', 2.2 * dpr, { tone: 1, dash: [5 * dpr, 4 * dpr], amp: 0.1 });
+    H.outline(H.RB, ring, 'coral', 2.2 * dpr, { tone: 1, dash: [5 * dpr, 5 * dpr], amp: 0.1 });
   }
+}
+function drawCameraHousing(H, c) {
+    const [lensX, lensY] = cameraLens(c);
+    const [gx, gy] = [devX(P.isoX(c.I, c.J)), devY(P.isoY(c.I, c.J, 2.45))];
+    // roundRect takes (x0, y0, x1, y1, r, n) — corner coordinates, not width/height.
+    const body = P.roundRect(gx - 8 * dpr, gy - 10 * dpr, gx + 8 * dpr, gy + 2 * dpr, 2 * dpr, 4);
+    H.fill(body, c.sees ? 'coral' : 'blue', 0.95);
+    H.outline(H.RB, body, 'black', 1.2 * dpr, { tone: 1, amp: 0 });
+    H.fill(P.circ(lensX, lensY, 2.4 * dpr, 10), c.sees ? 'coral' : 'sun', 1);
+    const aimXUnit = (lensX - gx) / dpr, aimYUnit = (lensY - gy) / dpr;
+    const aimLength = Math.hypot(aimXUnit, aimYUnit) || 1;
+    const ux = aimXUnit / aimLength, uy = aimYUnit / aimLength;
+    const bodyEdge = 1 / Math.max(Math.abs(ux) / 8, Math.abs(uy) / 6);
+    H.line(H.RB, [
+      [gx + ux * bodyEdge * dpr, gy + uy * bodyEdge * dpr],
+      [gx + ux * (bodyEdge + 5) * dpr, gy + uy * (bodyEdge + 5) * dpr],
+    ], c.sees ? 'coral' : 'sun', 1.6 * dpr, { amp: 0 });
+    H.line(H.RB, [[gx, gy + 2 * dpr], [gx, gy + 13 * dpr]], 'blue', 1.8 * dpr, { amp: 0 });
+    H.tint(P.roundRect(gx - 10 * dpr, gy + 12 * dpr, gx + 10 * dpr, gy + 14 * dpr, 0, 4), 'charcoal', 0.7);
 }
 function drawCharacter(R, e, t, role) {
   const [gx, gy] = P.iso(e.I - R.rm.at[0] * N, e.J - R.rm.at[1] * N, 0);
@@ -1004,13 +1021,27 @@ function draw(t) {
   ctx.imageSmoothingEnabled = false;
   if (!roomOrder) roomOrder = [...rooms.values()].sort((a, b) => a.rm.at[0] + a.rm.at[1] - b.rm.at[0] - b.rm.at[1]);
   const list = roomOrder;
-  for (const R of list) { if (!roomInView(R)) continue; const base = baseOf(R); blit(base.cv, base.ratio, R.ox + R.b.x0, R.oy + R.b.y0); }
-  drawFloorOverlays();
+  const renderOrder = [];
   for (const R of list) {
     if (!roomInView(R)) continue;
+    const floor = floorOf(R);
+    blit(floor.cv, floor.ratio, R.ox + R.b.x0, R.oy + R.b.y0);
+    renderOrder.push({ layer: 'floor', room: R.rm.id });
+  }
+  drawFloorOverlays();
+  renderOrder.push({ layer: 'overlays' });
+  for (const R of list) {
+    if (!roomInView(R)) continue;
+    const wall = wallOf(R);
+    blit(wall.cv, wall.ratio, R.ox + R.b.x0, R.oy + R.b.y0);
+    renderOrder.push({ layer: 'wall', room: R.rm.id });
+    const H = P.mkHand(ctx, { seed: 3 });
+    for (const c of cameras) if (roomAt(c.I, c.J)?.id === R.rm.id) {
+      drawCameraHousing(H, c);
+      renderOrder.push({ layer: 'camera', room: R.rm.id, id: c.id });
+    }
     const things = [];
     for (const it of R.items) {
-      if (hidden.has(it.id)) continue;
       const k = kindOf(it);
       if (S.layerOf(k) !== 'stand') continue;
       things.push({ key: K.depthOf(k, it), it });
@@ -1020,6 +1051,7 @@ function draw(t) {
     if (sr && rooms.get(sr.id) === R) things.push({ key: staff.I - R.rm.at[0] * N + staff.J - R.rm.at[1] * N + 0.015, entity: staff, role: 'staff' });
     if (tr && rooms.get(tr.id) === R) things.push({ key: thief.I - R.rm.at[0] * N + thief.J - R.rm.at[1] * N + 0.02, entity: thief, role: 'thief' });
     things.sort((a, b) => a.key - b.key);
+    renderOrder.push({ layer: 'standing', room: R.rm.id });
     for (const th of things) {
       if (th.entity) { drawCharacter(R, th.entity, t, th.role); continue; }
       const s = spriteOf(th.it), wx = R.ox + s.x0, wy = R.oy + s.y0;
@@ -1031,6 +1063,7 @@ function draw(t) {
       blit(s.cv, s.ratio, wx, wy);
     }
   }
+  lastRenderOrder = renderOrder;
 }
 
 // ---------------- DOM overlays & feed ----------------
@@ -1104,15 +1137,15 @@ function updateDomOverlays() {
     setText('#loot-status', `stolen · quota ${money(QUOTA)}`);
     setText('#panel-arch-badge', `Detective: ${middleTruncate(f.state.toUpperCase(), 22)} (${middleTruncate(f.arch, 18)})`);
     setText('#p-dist', `${nfOne.format(clampNum(f.dist, 0, 999))} tiles`);
-    setText('#p-los', pct > 50 ? 'SPOTTED!' : 'hidden');
+    setText('#p-los', pct > 50 ? 'SPOTTED!' : 'Hidden');
     setText('#p-hp', `${hp}%`);
-    setText('#rate-place', `p_${f.state}`);
+    setText('#rate-place', f.state.split('_')[0][0].toUpperCase() + f.state.split('_')[0].slice(1));
     setText('#rate-loot-count', f.lootText);
     setText('#rate-nearest-loot', middleTruncate(`nearest: Q3_Heist_Target_Aleksandra_Wiśniewska-Kowalczyk_Edition_v12_FINAL.heic (€12,345,679)`, 40));
     setText('#rate-fov', f.fovText);
     setText('#rate-firings', nfInt.format(firings));
     setText('#rate-firings-label', pluralEn.select(firings) === 'one' ? 'switch' : 'switches');
-    setText('#rate-guard-last', `rule: ${f.rule}`);
+    setText('#rate-guard-last', `Last transition: ${f.src} → ${f.dst}`);
     setText('#tag-count', f.tagText);
     const abf = $('#alert-bar-fill'); if (abf) abf.style.width = `${pct}%`;
     const ab = $('#alert-bar'); if (ab) ab.setAttribute('aria-valuenow', String(pct));
@@ -1174,22 +1207,21 @@ function updateDomOverlays() {
   setText('#panel-arch-badge', `Detective: ${ai.state.toUpperCase()} (${ai.arch} · ${activeProfile().label})`);
   const trip = $('#panel-trip'); if (trip) trip.classList.toggle('is-now', ai.state === 'chase' || ai.state === 'attack' || cameras.some((c) => c.sees));
   setText('#p-dist', `${nfOne.format(ai.percepts.player_dist)} tiles`);
-  setText('#p-los', ai.percepts.player_visible ? 'SPOTTED!' : 'hidden (pos=None)');
+  setText('#p-los', ai.percepts.player_visible ? 'SPOTTED!' : 'Hidden');
   setText('#p-hp', `${Math.round(clampNum(thief.hp, 0, 100))}%`);
 
-  setText('#rate-place', `p_${ai.state}`);
+  setText('#rate-place', ai.state.split('_')[0][0].toUpperCase() + ai.state.split('_')[0].slice(1));
   setText('#rate-loot-count', `${thief.stolenIds.size} / ${LOOT.size}`);
   setText('#rate-nearest-loot', near ? `next: ${near.meta.label} (${money(near.meta.value)})` : 'All tagged! Escape!');
   setText('#rate-fov', cameras.filter((c) => c.sees).length ? `${cameras.filter((c) => c.sees).length} CCTV ALERT` : (ai.percepts.player_visible ? 'SPOTTED' : 'Hidden'));
   setText('#rate-firings', nfInt.format(ai.firings));
   setText('#rate-firings-label', pluralEn.select(ai.firings) === 'one' ? 'switch' : 'switches');
-  setText('#rate-guard-last', `rule: ${ai.lastTransition.guard}`);
+  setText('#rate-guard-last', `Last transition: ${ai.lastTransition.src} → ${ai.lastTransition.dst}`);
 
   setText('#alert-tier', pct >= 80 ? 'ALARMED (Detective chasing / CCTV lock!)' : pct >= 42 ? 'Suspicious (investigating / searching)' : 'Calm (routine shelf patrol)');
   const ab = $('#alert-bar-fill'); if (ab) ab.style.width = `${pct}%`;
   const alertBar = $('#alert-bar'); if (alertBar) alertBar.setAttribute('aria-valuenow', String(pct));
   setText('#alert-numbers', `${pct}% suspicion · ${thief.taggedIds.size} RF tag(s) · ${cameras.filter((c) => c.sees).length}/${cameras.length} CCTV on you`);
-  setText('#rate-guard-last', `rule: ${ai.lastTransition.guard}`);
   setText('#bt-active-pill', ai.btActivePath);
   setText('#tag-count', `${thief.taggedIds.size} active RF tag(s)`);
 }
@@ -1244,7 +1276,6 @@ function thingAt(px, py) {
   const [wx, wy] = toWorld(px, py);
   let best = null, bk = -Infinity;
   for (const R of rooms.values()) for (const it of R.items) {
-    if (hidden.has(it.id)) continue;
     const k = kindOf(it), key = S.layerOf(k) === 'stand' ? K.depthOf(k, it) : -3;
     if (key > bk && P.pip(hullOf(it), wx - R.ox, wy - R.oy)) { best = it; bk = key; }
   }
@@ -1260,7 +1291,11 @@ stage.addEventListener('pointermove', (e) => {
     if (moved > 5) { cam.x -= dx / cam.z; cam.y -= dy / cam.z; userCam = true; tween = null; stage.classList.add('is-drag'); }
     drag = { x: ex, y: ey }; return;
   }
-  if (e.pointerType === 'mouse') { const it = thingAt(...at(e)); hover = it ? it.id : null; stage.classList.toggle('is-point', !!(it && LOOT.has(it.id))); }
+  if (e.pointerType === 'mouse') {
+    const it = thingAt(...at(e)), availableLoot = it && LOOT.has(it.id) && !thief.stolenIds.has(it.id);
+    hover = it && (!LOOT.has(it.id) || availableLoot) ? it.id : null;
+    stage.classList.toggle('is-point', !!availableLoot);
+  }
 });
 stage.addEventListener('pointerup', (e) => {
   stage.classList.remove('is-drag');
@@ -1434,7 +1469,6 @@ function init() {
     blockers: (I, J) => {
       const out = [];
       for (const R of rooms.values()) for (const it of R.items) {
-        if (hidden.has(it.id)) continue;
         const k = kindOf(it);
         if (!k || S.layerOf(k) !== 'stand' || PASSABLE_FIXTURES.has(it.kind) || (k.height || 0) < 0.01) continue;
         const tiles = K.footprint(k, it);
@@ -1448,6 +1482,7 @@ function init() {
       }
       return out;
     },
+    nearestLootId: () => nearestLoot()?.id || null,
     keys: keysDown,
     steal: () => tryStealOrDetag(),
     tick: (dt = 1 / 60) => step(dt),
@@ -1461,7 +1496,12 @@ function init() {
     setGuard: (I, J) => { guard.I = I; guard.J = J; },
     setStaff: (I, J) => { staff.I = I; staff.J = J; },
     fans: () => cameras.map((c) => ({ id: c.id, I: c.I, J: c.J, angle: c.angle,
-      pts: visionFan(c.I, c.J, c.angle, c.halfAngle, c.range, 10) })),
+      pts: visionFan(c.I, c.J, c.angle, c.halfAngle, c.range, 10, cameraLens(c)) })),
+    cameraAlignment: () => cameras.map((c) => {
+      const lens = cameraLens(c), apex = visionFan(c.I, c.J, c.angle, c.halfAngle, c.range, 10, lens)[0];
+      return { id: c.id, lens, apex };
+    }),
+    captureRenderOrder: () => lastRenderOrder.map((pass) => ({ ...pass })),
   };
   requestAnimationFrame(frame);
 }

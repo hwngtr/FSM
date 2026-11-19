@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -88,6 +89,10 @@ for (const mode of ['demo', 'worst', 'empty', 'one', 'huge']) {
     (0, eval)(code);
   }
   if (rafCb) rafCb(32);
+
+  assert.doesNotMatch(elements.get('#p-los').textContent, /pos=None/);
+  assert.doesNotMatch(elements.get('#rate-place').textContent, /^p_/);
+  assert.doesNotMatch(elements.get('#rate-guard-last').textContent, /^rule:/);
 
   // In demo mode, also test switching to BT and cycling personalities
   if (mode === 'demo') {

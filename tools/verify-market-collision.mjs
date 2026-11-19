@@ -71,6 +71,15 @@ assert(D.canWalk(10.5, 2.5, 12.5, 2.5) === false, 'cannot walk into a gondola sh
 assert(D.isBlockedTile(10.5, 2.5) === false, 'open aisle tile is walkable');
 assert(D.canWalk(11.98, 2.5, 12.02, 2.5) === false, 'no walkable seam between two shelf tiles');
 
+// The cheese island must stay clear of the straight route through the center of r3.
+let cheeseAisleBlocked = false;
+const dairyRoom = MC.house.rooms.find((room) => room.id === 'r3');
+const aisleI = dairyRoom.at[0] * 9 + 4.5, aisleJ = dairyRoom.at[1] * 9;
+for (let j = 1.5; j < 7.5; j += 0.25) {
+  if (!D.canWalk(aisleI, aisleJ + j, aisleI, aisleJ + j + 0.25)) cheeseAisleBlocked = true;
+}
+assert(!cheeseAisleBlocked, 'center aisle through the dairy room stays clear');
+
 // Diagonal rooms share no wall. Sight must not cross two solid walls through
 // the doorway band of the wrong axis (regression from the expansion audit).
 assert(D.los(5.7, 8.1, 11.7, 11.7) === false, 'diagonal rooms cannot see through two solid walls');
@@ -143,6 +152,21 @@ for (const it of MC.house.items) {
   if (!D.isBlockedTile(gi, gj)) { ghostObjects++; console.error('  ghost object', it.id, gi.toFixed(2), gj.toFixed(2)); }
 }
 assert(ghostObjects === 0, `every fixture is solid at its footprint centre (ghosts=${ghostObjects})`);
+
+const resolvedKinds = { ...globalThis.KINDS_DATA, ...MC.kinds };
+const missingKinds = MC.house.items.filter((it) => !resolvedKinds[it.kind]);
+assert(missingKinds.length === 0, `every placed fixture has a kind (${missingKinds.map((it) => it.id).join(', ') || 'none'})`);
+
+const cameraPoints = D.cameraAlignment?.() || [];
+assert(cameraPoints.length === MC.cameras.length, `every CCTV camera exposes its rendered lens point (${cameraPoints.length}/${MC.cameras.length})`);
+assert(cameraPoints.every(({ lens, apex }) => Math.hypot(lens[0] - apex[0], lens[1] - apex[1]) < 0.01),
+  'each CCTV fan starts at its visible lens');
+
+const renderOrder = D.captureRenderOrder?.() || [];
+const backStandIndex = renderOrder.findIndex((pass) => pass.layer === 'standing' && pass.room === 'r1');
+const frontWallIndex = renderOrder.findIndex((pass) => pass.layer === 'wall' && pass.room === 'r2');
+assert(backStandIndex >= 0 && frontWallIndex > backStandIndex,
+  'the front room wall draws after standing fixtures in the room behind it');
 
 // Long patrol: both NPCs must reach every waypoint and never wedge on a fixture.
 D.reset();

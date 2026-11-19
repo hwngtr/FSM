@@ -152,5 +152,19 @@ const tr = D.trace();
 assert(tr.length > 100, `tick trace records the run (${tr.length} entries)`);
 assert(['tick', 'state', 'heat', 'tier', 'visible', 'channel', 'outcome'].every((k) => k in tr[0]), 'trace rows carry the expected fields');
 
+// A stolen display stays in the world as a solid fixture.
+D.reset(); D.freezePatrol(true); D.setGuard(1, 16); D.setStaff(1, 16);
+s = runChannel(() => { teleportToItem('m_pallet1'); D.steal(); }, 'steal pallet display');
+assert(s.stolenIds.includes('m_pallet1'), 'pallet display recorded as stolen');
+const shelf = MC.house.items.find((it) => it.id === 'm_pallet1');
+const shelfRoom = MC.house.rooms.find((rm) => rm.id === shelf.room);
+const [shelfW, shelfD] = MC.kinds[shelf.kind].size;
+const shelfI = shelfRoom.at[0] * 9 + shelf.at.i + shelfW / 2;
+const shelfJ = shelfRoom.at[1] * 9 + shelf.at.j + shelfD / 2;
+assert(D.blockers(shelfI, shelfJ).some((blocker) => blocker.id === 'm_pallet1'),
+  'stolen pallet shelf remains a solid fixture');
+D.teleport(shelfI, shelfJ);
+assert(D.nearestLootId() !== 'm_pallet1', 'stolen pallet shelf is no longer available as loot');
+
 if (failed) process.exitCode = 1;
 else console.log('\nAll heist-loop checks passed.');

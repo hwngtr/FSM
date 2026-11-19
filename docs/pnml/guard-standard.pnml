@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated from src/npc/ai/fsm.py and src/npc/ai/profiles.py. -->
+<pnml>
+  <net id="guard_standard" type="http://www.pnml.org/version-2009/grammar/pnmlcoremodel">
+    <name>
+      <text>Guard FSM - Standard</text>
+    </name>
+    <toolspecific tool="OpenCode" version="1.0">
+      <guardProfile id="standard" label="Standard">
+        <parameter name="fov_distance" value="5.4" />
+        <parameter name="fov_half_angle" value="0.6" />
+        <parameter name="close_proximity" value="1.25" />
+        <parameter name="hearing_scale" value="1.0" />
+        <parameter name="sound_memory_ticks" value="30" />
+        <parameter name="attack_range" value="1.38" />
+        <parameter name="lost_sight_limit" value="45" />
+        <parameter name="search_duration_limit" value="90" />
+        <parameter name="alert_detect_threshold" value="0.25" />
+        <parameter name="alert_calm_threshold" value="0.35" />
+        <parameter name="alert_gain_rate" value="0.85" />
+        <parameter name="alert_decay_rate" value="0.14" />
+        <parameter name="patrol_speed" value="0.82" />
+        <parameter name="investigate_speed" value="1.05" />
+        <parameter name="chase_speed" value="1.24" />
+        <summary>Balanced patrol guard (5.4t FOV, 69° cone, 1.38t tackle).</summary>
+      </guardProfile>
+      <verification tokenInvariant="sum(place markings) = 1" fsmPetriNetBisimulation="passed" profileTraceAgreement="100% across 30 seeded episodes per profile" tlaModelChecking="not verified" />
+      <semantics>Transition labels document source-code guards. Standard PNML token firing does not evaluate these profile-specific conditions.</semantics>
+    </toolspecific>
+    <place id="p_idle">
+      <name>
+        <text>IDLE</text>
+      </name>
+      <initialMarking>
+        <text>1</text>
+      </initialMarking>
+      <capacity>
+        <text>1</text>
+      </capacity>
+      <graphics>
+        <position x="150" y="330" />
+        <dimension x="40" y="40" />
+      </graphics>
+    </place>
+    <place id="p_patrol">
+      <name>
+        <text>PATROL</text>
+      </name>
+      <capacity>
+        <text>1</text>
+      </capacity>
+      <graphics>
+        <position x="330" y="180" />
+        <dimension x="40" y="40" />
+      </graphics>
+    </place>
+    <place id="p_investigate">
+      <name>
+        <text>INVESTIGATE</text>
+      </name>
+      <capacity>
+        <text>1</text>
+      </capacity>
+      <graphics>
+        <position x="330" y="480" />
+        <dimension x="40" y="40" />
+      </graphics>
+    </place>
+    <place id="p_chase">
+      <name>
+        <text>CHASE</text>
+      </name>
+      <capacity>
+        <text>1</text>
+      </capacity>
+      <graphics>
+        <position x="570" y="330" />
+        <dimension x="40" y="40" />
+      </graphics>
+    </place>
+    <place id="p_attack">
+      <name>
+        <text>ATTACK</text>
+      </name>
+      <capacity>
+        <text>1</text>
+      </capacity>
+      <graphics>
+        <position x="810" y="180" />
+        <dimension x="40" y="40" />
+      </graphics>
+    </place>
+    <place id="p_search">
+      <name>
+        <text>SEARCH</text>
+      </name>
+      <capacity>
+        <text>1</text>
+      </capacity>
+      <graphics>
+        <position x="810" y="480" />
+        <dimension x="40" y="40" />
+      </graphics>
+    </place>
+    <place id="p_return">
+      <name>
+        <text>RETURN</text>
+      </name>
+      <capacity>
+        <text>1</text>
+      </capacity>
+      <graphics>
+        <position x="1050" y="330" />
+        <dimension x="40" y="40" />
+      </graphics>
+    </place>
+    <transition id="t00_idle_to_chase">
+      <name>
+        <text>IDLE -&gt; CHASE</text>
+      </name>
+      <label>
+        <text>player visible AND alert &gt;= 0.25</text>
+      </label>
+      <graphics>
+        <position x="360" y="330" />
+      </graphics>
+    </transition>
+    <arc id="a00_in" source="p_idle" target="t00_idle_to_chase" />
+    <arc id="a00_out" source="t00_idle_to_chase" target="p_chase" />
+    <transition id="t01_idle_to_investigate">
+      <name>
+        <text>IDLE -&gt; INVESTIGATE</text>
+      </name>
+      <label>
+        <text>recent sound &lt;= 30 ticks OR (visible AND alert &lt; 0.25)</text>
+      </label>
+      <graphics>
+        <position x="240" y="405" />
+      </graphics>
+    </transition>
+    <arc id="a01_in" source="p_idle" target="t01_idle_to_investigate" />
+    <arc id="a01_out" source="t01_idle_to_investigate" target="p_investigate" />
+    <transition id="t02_idle_to_patrol">
+      <name>
+        <text>IDLE -&gt; PATROL</text>
+      </name>
+      <label>
+        <text>route assigned (always true)</text>
+      </label>
+      <graphics>
+        <position x="240" y="255" />
+      </graphics>
+    </transition>
+    <arc id="a02_in" source="p_idle" target="t02_idle_to_patrol" />
+    <arc id="a02_out" source="t02_idle_to_patrol" target="p_patrol" />
+    <transition id="t03_patrol_to_chase">
+      <name>
+        <text>PATROL -&gt; CHASE</text>
+      </name>
+      <label>
+        <text>player visible AND alert &gt;= 0.25</text>
+      </label>
+      <graphics>
+        <position x="450" y="255" />
+      </graphics>
+    </transition>
+    <arc id="a03_in" source="p_patrol" target="t03_patrol_to_chase" />
+    <arc id="a03_out" source="t03_patrol_to_chase" target="p_chase" />
+    <transition id="t04_patrol_to_investigate">
+      <name>
+        <text>PATROL -&gt; INVESTIGATE</text>
+      </name>
+      <label>
+        <text>recent sound &lt;= 30 ticks OR (visible AND alert &lt; 0.25)</text>
+      </label>
+      <graphics>
+        <position x="330" y="330" />
+      </graphics>
+    </transition>
+    <arc id="a04_in" source="p_patrol" target="t04_patrol_to_investigate" />
+    <arc id="a04_out" source="t04_patrol_to_investigate" target="p_investigate" />
+    <transition id="t05_investigate_to_chase">
+      <name>
+        <text>INVESTIGATE -&gt; CHASE</text>
+      </name>
+      <label>
+        <text>player visible AND alert &gt;= 0.25</text>
+      </label>
+      <graphics>
+        <position x="450" y="405" />
+      </graphics>
+    </transition>
+    <arc id="a05_in" source="p_investigate" target="t05_investigate_to_chase" />
+    <arc id="a05_out" source="t05_investigate_to_chase" target="p_chase" />
+    <transition id="t06_investigate_to_search">
+      <name>
+        <text>INVESTIGATE -&gt; SEARCH</text>
+      </name>
+      <label>
+        <text>arrived at target AND player not visible</text>
+      </label>
+      <graphics>
+        <position x="570" y="454" />
+      </graphics>
+    </transition>
+    <arc id="a06_in" source="p_investigate" target="t06_investigate_to_search" />
+    <arc id="a06_out" source="t06_investigate_to_search" target="p_search" />
+    <transition id="t07_chase_to_attack">
+      <name>
+        <text>CHASE -&gt; ATTACK</text>
+      </name>
+      <label>
+        <text>player visible AND distance &lt;= 1.38</text>
+      </label>
+      <graphics>
+        <position x="662" y="211" />
+      </graphics>
+    </transition>
+    <arc id="a07_in" source="p_chase" target="t07_chase_to_attack" />
+    <arc id="a07_out" source="t07_chase_to_attack" target="p_attack" />
+    <transition id="t08_chase_to_search">
+      <name>
+        <text>CHASE -&gt; SEARCH</text>
+      </name>
+      <label>
+        <text>not visible AND lost sight &gt;= 45 ticks</text>
+      </label>
+      <graphics>
+        <position x="718" y="361" />
+      </graphics>
+    </transition>
+    <arc id="a08_in" source="p_chase" target="t08_chase_to_search" />
+    <arc id="a08_out" source="t08_chase_to_search" target="p_search" />
+    <transition id="t09_attack_to_chase">
+      <name>
+        <text>ATTACK -&gt; CHASE</text>
+      </name>
+      <label>
+        <text>(visible AND distance &gt; 1.38) OR (not visible AND lost sight &lt; 45 ticks)</text>
+      </label>
+      <graphics>
+        <position x="690" y="255" />
+      </graphics>
+    </transition>
+    <arc id="a09_in" source="p_attack" target="t09_attack_to_chase" />
+    <arc id="a09_out" source="t09_attack_to_chase" target="p_chase" />
+    <transition id="t10_attack_to_search">
+      <name>
+        <text>ATTACK -&gt; SEARCH</text>
+      </name>
+      <label>
+        <text>not visible AND lost sight &gt;= 45 ticks</text>
+      </label>
+      <graphics>
+        <position x="836" y="330" />
+      </graphics>
+    </transition>
+    <arc id="a10_in" source="p_attack" target="t10_attack_to_search" />
+    <arc id="a10_out" source="t10_attack_to_search" target="p_search" />
+    <transition id="t11_search_to_chase">
+      <name>
+        <text>SEARCH -&gt; CHASE</text>
+      </name>
+      <label>
+        <text>player visible AND alert &gt;= 0.25</text>
+      </label>
+      <graphics>
+        <position x="690" y="405" />
+      </graphics>
+    </transition>
+    <arc id="a11_in" source="p_search" target="t11_search_to_chase" />
+    <arc id="a11_out" source="t11_search_to_chase" target="p_chase" />
+    <transition id="t12_search_to_investigate">
+      <name>
+        <text>SEARCH -&gt; INVESTIGATE</text>
+      </name>
+      <label>
+        <text>recent sound &lt;= 30 ticks OR (visible AND alert &lt; 0.25)</text>
+      </label>
+      <graphics>
+        <position x="570" y="454" />
+      </graphics>
+    </transition>
+    <arc id="a12_in" source="p_search" target="t12_search_to_investigate" />
+    <arc id="a12_out" source="t12_search_to_investigate" target="p_investigate" />
+    <transition id="t13_search_to_return">
+      <name>
+        <text>SEARCH -&gt; RETURN</text>
+      </name>
+      <label>
+        <text>not visible AND search &gt;= 90 ticks AND alert &lt;= 0.35</text>
+      </label>
+      <graphics>
+        <position x="930" y="405" />
+      </graphics>
+    </transition>
+    <arc id="a13_in" source="p_search" target="t13_search_to_return" />
+    <arc id="a13_out" source="t13_search_to_return" target="p_return" />
+    <transition id="t14_return_to_chase">
+      <name>
+        <text>RETURN -&gt; CHASE</text>
+      </name>
+      <label>
+        <text>player visible AND alert &gt;= 0.25</text>
+      </label>
+      <graphics>
+        <position x="810" y="304" />
+      </graphics>
+    </transition>
+    <arc id="a14_in" source="p_return" target="t14_return_to_chase" />
+    <arc id="a14_out" source="t14_return_to_chase" target="p_chase" />
+    <transition id="t15_return_to_investigate">
+      <name>
+        <text>RETURN -&gt; INVESTIGATE</text>
+      </name>
+      <label>
+        <text>recent sound &lt;= 30 ticks OR (visible AND alert &lt; 0.25)</text>
+      </label>
+      <graphics>
+        <position x="679" y="354" />
+      </graphics>
+    </transition>
+    <arc id="a15_in" source="p_return" target="t15_return_to_investigate" />
+    <arc id="a15_out" source="t15_return_to_investigate" target="p_investigate" />
+    <transition id="t16_return_to_patrol">
+      <name>
+        <text>RETURN -&gt; PATROL</text>
+      </name>
+      <label>
+        <text>at route start</text>
+      </label>
+      <graphics>
+        <position x="701" y="204" />
+      </graphics>
+    </transition>
+    <arc id="a16_in" source="p_return" target="t16_return_to_patrol" />
+    <arc id="a16_out" source="t16_return_to_patrol" target="p_patrol" />
+  </net>
+</pnml>

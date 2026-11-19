@@ -6,7 +6,7 @@
     'gondola-shelf': {
       name: 'gondola-shelf', label: 'low open sightline grocery shelf', place: 'floor',
       size: [2.8, 0.92], height: 1.72, price: [400, 1200],
-      colors: { frame: 'charcoal', spine: 'silver', priceStrip: 'yellow', cap: 'blue',
+      colors: { frame: 'charcoal', spine: 'charcoal', priceStrip: 'yellow', cap: 'oak',
                 pasta: 'mustard', tins: 'coral', drinks: 'teal', snack: 'orange', box: 'cream' },
       shapes: [
         { box: [0, 0.04, 0, 2.8, 0.84, 0.14], color: 'frame', shadow: true },
@@ -36,6 +36,8 @@
         { box: [2.00, 0.16, 1.51, 0.40, 0.55, 0.24], color: 'drinks' },
         { pole: [1.40, 0.50, 1.51, 1.40, 0.50, 2.05], color: 'frame', w: 2 },
         { box: [0.74, 0.42, 1.82, 1.32, 0.16, 0.30], color: 'priceStrip' },
+        // oak cap board over the spine, reading as wood end cladding at close zoom
+        { box: [0.02, 0.36, 1.50, 2.76, 0.14, 0.08], color: 'cap' },
       ],
       reach: { l: 8, t: 9, r: 24, b: 24 },
     },
@@ -80,20 +82,21 @@
     'produce-island': {
       name: 'produce-island', label: 'fresh produce crate island', place: 'floor',
       size: [1.9, 1.25], height: 0.98, price: [200, 800],
-      colors: { base: 'oak', bin: 'leaf', tag: 'yellow', terracotta: 'terracotta',
-                plum: 'plum', orange: 'orange', green: 'green', coral: 'coral' },
+      colors: { base: 'oak', bin: 'oak', tag: 'yellow', terracotta: 'tan',
+                plum: 'oak', orange: 'orange', green: 'green', coral: 'red' },
       shapes: [
         { box: [0, 0, 0, 1.9, 1.25, 0.58], color: 'base', shadow: true },
         { box: [0.06, 0.06, 0.58, 0.86, 0.54, 0.28], color: 'bin' },
         { box: [0.98, 0.06, 0.58, 0.86, 0.54, 0.28], color: 'terracotta' },
         { box: [0.06, 0.65, 0.58, 0.86, 0.54, 0.28], color: 'yellow' },
         { box: [0.98, 0.65, 0.58, 0.86, 0.54, 0.28], color: 'plum' },
-        { ball: [0.35, 0.32, 0.88, 0.14], color: 'leaf' },
-        { ball: [0.62, 0.34, 0.88, 0.14], color: 'green' },
+        // Bio bananas, lemons, tomatoes, carrots: fruit heaped over the crate rims
+        { ball: [0.35, 0.32, 0.88, 0.14], color: 'yellow' },
+        { ball: [0.62, 0.34, 0.88, 0.14], color: 'yellow' },
         { ball: [1.28, 0.32, 0.88, 0.14], color: 'coral' },
         { ball: [1.55, 0.34, 0.88, 0.14], color: 'orange' },
-        { ball: [0.38, 0.90, 0.88, 0.14], color: 'yellow' },
-        { ball: [1.35, 0.90, 0.88, 0.14], color: 'plum' },
+        { ball: [0.38, 0.90, 0.88, 0.14], color: 'green' },
+        { ball: [1.35, 0.90, 0.88, 0.14], color: 'coral' },
         { box: [0.20, 0.14, 0.60, 0.30, 0.04, 0.04], color: 'tag' },
         { box: [1.10, 0.14, 0.60, 0.30, 0.04, 0.04], color: 'tag' },
       ],
@@ -257,25 +260,287 @@
     },
 
     'shopping-cart': {
-      name: 'shopping-cart', label: 'wire shopping trolley', place: 'floor',
-      size: [1.1, 1.6], height: 1.05, price: [0, 0],
-      colors: { metal: 'silver', basket: 'blue', handle: 'charcoal', wheel: 'black', stripe: 'yellow' },
-      shapes: [
-        { box: [0, 0, 0.42, 1.1, 1.6, 0.08], color: 'basket', shadow: true },
-        { box: [0, 0, 0.50, 1.1, 0.07, 0.42], color: 'metal' },
-        { box: [0, 1.53, 0.50, 1.1, 0.07, 0.42], color: 'metal' },
-        { box: [0, 0, 0.50, 0.07, 1.6, 0.42], color: 'metal' },
-        { box: [1.03, 0, 0.50, 0.07, 1.6, 0.42], color: 'metal' },
-        { box: [0, 0.55, 0.72, 1.1, 0.05, 0.05], color: 'stripe' },
-        { pole: [0.10, 1.55, 0.50, 0.10, 1.55, 1.02], color: 'metal', w: 2 },
-        { pole: [1.00, 1.55, 0.50, 1.00, 1.55, 1.02], color: 'metal', w: 2 },
-        { box: [0.08, 1.50, 1.00, 0.94, 0.12, 0.08], color: 'handle' },
-        { cyl: [0.18, 0.18, 0, 0.10, 0.16], color: 'wheel' },
-        { cyl: [0.92, 0.18, 0, 0.10, 0.16], color: 'wheel' },
-        { cyl: [0.18, 1.42, 0, 0.10, 0.16], color: 'wheel' },
-        { cyl: [0.92, 1.42, 0, 0.10, 0.16], color: 'wheel' },
+      "name": "shopping-cart",
+      "label": "wire shopping trolley",
+      "place": "floor",
+      "size": [
+        1.1,
+        1.6
       ],
-      reach: { l: 8, t: 8, r: 18, b: 18 },
+      "height": 1.05,
+      "price": [
+        0,
+        0
+      ],
+      "colors": {
+        "metal": "silver",
+        "basket": "blue",
+        "handle": "red",
+        "wheel": "black",
+        "stripe": "yellow"
+      },
+      "shapes": [
+        {
+          "cyl": [
+            0.16,
+            0.16,
+            0,
+            0.08,
+            0.14
+          ],
+          "color": "wheel"
+        },
+        {
+          "cyl": [
+            0.94,
+            0.16,
+            0,
+            0.08,
+            0.14
+          ],
+          "color": "wheel"
+        },
+        {
+          "cyl": [
+            0.16,
+            1.44,
+            0,
+            0.08,
+            0.14
+          ],
+          "color": "wheel"
+        },
+        {
+          "cyl": [
+            0.94,
+            1.44,
+            0,
+            0.08,
+            0.14
+          ],
+          "color": "wheel"
+        },
+        {
+          "legs": [
+            0.13,
+            0.13,
+            0.14,
+            0.84,
+            1.34,
+            0.24
+          ],
+          "color": "metal",
+          "t": 0.06
+        },
+        {
+          "box": [
+            0.13,
+            0.13,
+            0.16,
+            0.84,
+            0.05,
+            0.04
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.13,
+            1.42,
+            0.16,
+            0.84,
+            0.05,
+            0.04
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.13,
+            0.13,
+            0.16,
+            0.05,
+            1.34,
+            0.04
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.92,
+            0.13,
+            0.16,
+            0.05,
+            1.34,
+            0.04
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.06,
+            0.06,
+            0.38,
+            0.98,
+            1.44,
+            0.07
+          ],
+          "color": "basket",
+          "shadow": true
+        },
+        {
+          "legs": [
+            0.06,
+            0.06,
+            0.45,
+            0.98,
+            1.44,
+            0.43
+          ],
+          "color": "metal",
+          "t": 0.06
+        },
+        {
+          "box": [
+            0.06,
+            0.06,
+            0.58,
+            0.98,
+            0.05,
+            0.05
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.06,
+            1.45,
+            0.58,
+            0.98,
+            0.05,
+            0.05
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.06,
+            0.06,
+            0.58,
+            0.05,
+            1.44,
+            0.05
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.99,
+            0.06,
+            0.58,
+            0.05,
+            1.44,
+            0.05
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.06,
+            0.06,
+            0.82,
+            0.98,
+            0.06,
+            0.06
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.06,
+            1.44,
+            0.82,
+            0.98,
+            0.06,
+            0.06
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.06,
+            0.06,
+            0.82,
+            0.06,
+            1.44,
+            0.06
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.98,
+            0.06,
+            0.82,
+            0.06,
+            1.44,
+            0.06
+          ],
+          "color": "metal"
+        },
+        {
+          "box": [
+            0.06,
+            1.04,
+            0.58,
+            0.98,
+            0.04,
+            0.28
+          ],
+          "color": "metal"
+        },
+        {
+          "pole": [
+            0.12,
+            1.47,
+            0.45,
+            0.12,
+            1.54,
+            1
+          ],
+          "color": "metal",
+          "w": 2
+        },
+        {
+          "pole": [
+            0.98,
+            1.47,
+            0.45,
+            0.98,
+            1.54,
+            1
+          ],
+          "color": "metal",
+          "w": 2
+        },
+        {
+          "box": [
+            0.08,
+            1.48,
+            0.97,
+            0.94,
+            0.1,
+            0.08
+          ],
+          "color": "handle"
+        }
+      ],
+      "reach": {
+        "l": 8,
+        "t": 8,
+        "r": 18,
+        "b": 18
+      }
     },
 
     'hand-basket': {
@@ -653,30 +918,29 @@
     items: [
       // r1 — fresh welcome: red portal, produce islands, Pfand, trolleys and baskets, coffee.
       { id: 'd_arch', kind: 'rewe-arch', name: 'Illuminated red REWE entrance arch', price: 0, room: 'r1', at: { i: 0.3, j: 3.2, face: 'nw' } },
-      { id: 'm_produce1', kind: 'produce-island', name: 'Bio Avocados & Pink Lady Apple Crate', price: 22, room: 'r1', at: { i: 2.8, j: 1.2, face: 'ne' } },
-      { id: 'm_produce2', kind: 'produce-island', name: 'Organic Mangos & Sicilian Lemons', price: 18, room: 'r1', at: { i: 2.8, j: 4.0, face: 'ne' } },
+      { id: 'm_produce1', kind: 'produce-island', name: 'REWE Bio Bananas & Carrots Crate', price: 22, room: 'r1', at: { i: 2.8, j: 1.2, face: 'ne' } },
       { id: 'd_pfand', kind: 'pfand-machine', name: 'Pfand Bottle Return Machine', price: 0, room: 'r1', at: { i: 0.3, j: 6.6, face: 'nw' } },
       { id: 'd_cart1', kind: 'shopping-cart', name: 'Shopping Trolley', price: 0, room: 'r1', at: { i: 5.6, j: 2.0, face: 'ne' } },
 
       // r2 — breakfast, bakery, and low 1.6 m dry-goods shelves; pasta sits beside sauces.
       { id: 'm_bakery', kind: 'bakery-rack', name: 'SB-Backwaren: Bio Krustenbrot & Brezeln', price: 14, room: 'r2', at: { i: 0.2, j: 0.6, face: 'ne' } },
-      { id: 'm_gondola1', kind: 'gondola-shelf', name: 'Frühstück: Müsli, Marmelade & Lavazza Kaffee', price: 28, room: 'r2', at: { i: 2.2, j: 2.2, face: 'ne' } },
-      { id: 'm_gondola2', kind: 'gondola-shelf', name: 'Convenience: Pasta, Pesto & Truffle Olive Oil', price: 32, room: 'r2', at: { i: 2.2, j: 5.4, face: 'ne' } },
+      { id: 'm_gondola1', kind: 'gondola-shelf', name: 'Frühstück: REWE Bio Müsli & Lavazza Kaffee', price: 28, room: 'r2', at: { i: 2.2, j: 2.2, face: 'ne' } },
+      { id: 'm_gondola2', kind: 'gondola-shelf', name: 'Trockenware: REWE Bio Fusilli & Spaghetti', price: 32, room: 'r2', at: { i: 2.2, j: 5.4, face: 'ne' } },
       { id: 'm_endcap1', kind: 'pallet-stack', name: 'Energy Drink Endcap Display', price: 36, room: 'r2', at: { i: 6.6, j: 1.6, face: 'nw' } },
 
       // r3 — dairy and self-service meat coolers against the RIGHT wall, plus staffed counters.
-      { id: 'm_chill1', kind: 'chilled-case', name: 'Frischetheke: Dry-Aged Black Angus Ribeye', price: 46, room: 'r3', at: { i: 5.6, j: 1.0, face: 'nw' } },
+      { id: 'm_chill1', kind: 'chilled-case', name: 'Frischetheke: Dry-Aged Black Angus Ribeye', price: 46, room: 'r3', at: { i: 5.6, j: 0.0, face: 'nw' } },
       { id: 'm_chill2', kind: 'chilled-case', name: 'Kühlregal: Wild Smoked Salmon & Caviar', price: 34, room: 'r3', at: { i: 5.6, j: 5.4, face: 'nw' } },
-      { id: 'm_cheese', kind: 'produce-island', name: '24-Month Parmigiano & Brie Island', price: 29, room: 'r3', at: { i: 4.4, j: 3.2, face: 'ne' } },
+      { id: 'm_cheese', kind: 'produce-island', name: 'REWE Bio Joghurt & Parmigiano Island', price: 29, room: 'r3', at: { i: 2.0, j: 5.0, face: 'ne' } },
       { id: 'd_meat', kind: 'service-counter', name: 'Bedientheke Fleisch & Wurst', price: 0, room: 'r3', at: { i: 0.4, j: 1.0, face: 'ne' } },
       { id: 'd_delifr', kind: 'service-counter', name: 'Käse- & Feinkosttheke', price: 0, room: 'r3', at: { i: 0.4, j: 2.7, face: 'ne' } },
       { id: 'd_fish', kind: 'service-counter', name: 'Fischtheke mit Marktdach', price: 0, room: 'r3', at: { i: 0.4, j: 7.0, face: 'ne' } },
 
       // r4 — beverages and wine at the BACK, with wholesale pallets and the locked spirits case.
-      { id: 'd_bev1', kind: 'beverage-shelf', name: 'Wasser, Cola & Säfte', price: 0, room: 'r4', at: { i: 0.6, j: 1.2, face: 'ne' } },
+      { id: 'd_bev1', kind: 'beverage-shelf', name: 'Wasser, Cola & Säfte', price: 0, room: 'r4', at: { i: 0.6, j: 0.0, face: 'ne' } },
       { id: 'm_spirits', kind: 'liquor-cabinet', name: 'Spirituosen Vitrine: 18yr Single Malt & Champagne', price: 68, room: 'r4', at: { i: 7.2, j: 1.0, face: 'nw' } },
       { id: 'm_pallet1', kind: 'pallet-stack', name: 'Wholesale Champagne Case', price: 54, room: 'r4', at: { i: 2.4, j: 2.0, face: 'ne' } },
-      { id: 'm_pallet2', kind: 'pallet-stack', name: 'Espresso & Chocolate Cartons', price: 30, room: 'r4', at: { i: 4.0, j: 6.2, face: 'ne' } },
+      { id: 'm_pallet2', kind: 'pallet-stack', name: 'REWE Bio Milch & Chocolate Cartons', price: 30, room: 'r4', at: { i: 4.0, j: 6.2, face: 'ne' } },
 
       // r5 — drugstore and freezers immediately before the checkout.
       { id: 'd_freezer1', kind: 'freezer-chest', name: 'Tiefkühl Pizza & Eis', price: 0, room: 'r5', at: { i: 0.6, j: 1.4, face: 'ne' } },
@@ -687,7 +951,7 @@
       { id: 'm_checkout1', kind: 'checkout-lane', name: 'Kasse 1 & Razor Blade Display', price: 38, room: 'r6', at: { i: 0.8, j: 1.2, face: 'ne' } },
       { id: 'm_checkout2', kind: 'checkout-lane', name: 'Kasse 2 Express Lane', price: 25, room: 'r6', at: { i: 0.8, j: 5.4, face: 'ne' } },
       { id: 'd_sco1', kind: 'self-checkout', name: 'Self-Checkout Terminal 1', price: 0, room: 'r6', at: { i: 4.2, j: 1.4, face: 'ne' } },
-      { id: 'd_imp1', kind: 'impulse-shelf', name: 'Kaugummi & Schokolade', price: 0, room: 'r6', at: { i: 3.0, j: 3.0, face: 'ne' } },
+      { id: 'd_imp1', kind: 'impulse-shelf', name: 'Kassen Süßwaren: Kaugummi & Schokolade', price: 0, room: 'r6', at: { i: 3.0, j: 3.0, face: 'ne' } },
       { id: 'm_eas1', kind: 'eas-gate', name: 'RF Anti-Theft Exit Scanner Gate', price: 0, room: 'r6', at: { i: 7.2, j: 3.2, face: 'ne' } },
       { id: 'm_server', kind: 'server-rack', name: 'Security Office: EAS Deactivator & CCTV DVR', price: 0, room: 'r6', at: { i: 7.2, j: 6.8, face: 'ne' } },
 
@@ -713,7 +977,7 @@
       // r10 - wet sales: counters and freezer walls make a sightline maze.
       { id: 'd_deli1', kind: 'deli-counter', name: 'Wursttheke Am Kostanteil', price: 0, room: 'r10', at: { i: 0.6, j: 1.2, face: 'ne' } },
       { id: 'm_ham', kind: 'deli-counter', name: 'Truffelschinken Theke', price: 39, room: 'r10', at: { i: 0.6, j: 6.0, face: 'ne' } },
-      { id: 'd_fish10', kind: 'service-counter', name: 'Fischtheke Nebentheke', price: 0, room: 'r10', at: { i: 2.0, j: 1.4, face: 'ne' } },
+      { id: 'd_fish10', kind: 'service-counter', name: 'Fischtheke Nebentheke', price: 0, room: 'r10', at: { i: 3.4, j: 1.2, face: 'ne' } },
       { id: 'm_lango', kind: 'freezer-wall', name: 'TK Langoustinen Wand', price: 36, room: 'r10', at: { i: 4.0, j: 7.2, face: 'ne' } },
       { id: 'd_hw10', kind: 'hand-wash', name: 'Hygienebecken', price: 0, room: 'r10', at: { i: 7.6, j: 6.4, face: 'nw' } },
 
@@ -733,63 +997,30 @@
 
       // Department-specific stocking: each zone is themed to its trade.
       { id: 't1a', kind: 'floral-stand', name: 'Schnittblumen am Eingang', price: 0, room: 'r1', at: { i: 0.8, j: 1.2, face: 'ne' } },
-      { id: 't1b', kind: 'floral-stand', name: 'Topfpflanzen Aktion', price: 0, room: 'r1', at: { i: 0.8, j: 7.2, face: 'ne' } },
-      { id: 't1c', kind: 'bakery-rack', name: 'Backwaren zum Mitnehmen', price: 0, room: 'r1', at: { i: 6.4, j: 0.6, face: 'ne' } },
-      { id: 't1d', kind: 'hand-basket', name: 'Einkaufskorbe Stapel', price: 0, room: 'r1', at: { i: 7.2, j: 2.0, face: 'ne' } },
 
-      { id: 't2a', kind: 'bakery-rack', name: 'Vollkorn Brot Regal', price: 0, room: 'r2', at: { i: 6.6, j: 0.6, face: 'ne' } },
-      { id: 't2b', kind: 'bakery-rack', name: 'Brezeln & Snacks', price: 0, room: 'r2', at: { i: 0.2, j: 5.4, face: 'ne' } },
       { id: 't2c', kind: 'pallet-stack', name: 'Muesli & Cornflakes Palette', price: 0, room: 'r2', at: { i: 4.6, j: 0.6, face: 'ne' } },
-      { id: 't2d', kind: 'coffee-counter', name: 'Kaffee & Tee Station', price: 0, room: 'r2', at: { i: 6.6, j: 6.6, face: 'nw' } },
 
-      { id: 't3a', kind: 'chilled-case', name: 'Frische Milch & Joghurt', price: 0, room: 'r3', at: { i: 0.8, j: 1.2, face: 'ne' } },
-      { id: 't3b', kind: 'chilled-case', name: 'Butter & Margarine', price: 0, room: 'r3', at: { i: 0.8, j: 6.2, face: 'ne' } },
-      { id: 't3c', kind: 'produce-island', name: 'Kaseinsel: Gouda & Brie', price: 0, room: 'r3', at: { i: 2.4, j: 6.6, face: 'ne' } },
 
       { id: 't4a', kind: 'beverage-shelf', name: 'Mineralwasser & Säfte', price: 0, room: 'r4', at: { i: 0.6, j: 4.2, face: 'ne' } },
       { id: 't4b', kind: 'beverage-shelf', name: 'Bier & Alkoholfrei', price: 0, room: 'r4', at: { i: 0.6, j: 7.2, face: 'ne' } },
-      { id: 't4c', kind: 'wine-rack', name: 'Weinregal: Riesling', price: 0, room: 'r4', at: { i: 7.2, j: 6.6, face: 'nw' } },
-      { id: 't4d', kind: 'crate-tower', name: 'Getrankenkisten Stapel', price: 0, room: 'r4', at: { i: 5.0, j: 2.0, face: 'ne' } },
 
-      { id: 't5a', kind: 'freezer-chest', name: 'Tiefkuhl: Gemuse & Beeren', price: 0, room: 'r5', at: { i: 0.6, j: 2.0, face: 'ne' } },
       { id: 't5b', kind: 'gondola-shelf', name: 'Drogerie: Pflegeprodukte', price: 0, room: 'r5', at: { i: 6.6, j: 1.2, face: 'nw' } },
-      { id: 't5c', kind: 'gondola-shelf', name: 'Haushalt: Waschmittel', price: 0, room: 'r5', at: { i: 2.2, j: 2.8, face: 'ne' } },
       { id: 't5d', kind: 'dump-bin', name: 'Leergut Karton', price: 0, room: 'r5', at: { i: 6.6, j: 6.6, face: 'nw' } },
 
       { id: 't6a', kind: 'checkout-lane', name: 'Kasse 3', price: 0, room: 'r6', at: { i: 0.8, j: 7.4, face: 'ne' } },
       { id: 't6b', kind: 'self-checkout', name: 'Self-Checkout Terminal 3', price: 0, room: 'r6', at: { i: 4.2, j: 5.4, face: 'ne' } },
-      { id: 't6c', kind: 'impulse-shelf', name: 'Zeitschriften & Bonbons', price: 0, room: 'r6', at: { i: 3.0, j: 6.6, face: 'ne' } },
-      { id: 't6d', kind: 'shopping-cart', name: 'Einkaufswagen Abstellflache', price: 0, room: 'r6', at: { i: 6.0, j: 7.6, face: 'ne' } },
 
       { id: 't7a', kind: 'floral-stand', name: 'Schnittblumen Regal', price: 0, room: 'r7', at: { i: 0.6, j: 3.2, face: 'ne' } },
-      { id: 't7b', kind: 'seasonal-display', name: 'Saison Dekoration', price: 0, room: 'r7', at: { i: 5.0, j: 2.4, face: 'ne' } },
-      { id: 't7c', kind: 'crate-tower', name: 'Garten Gitterbox', price: 0, room: 'r7', at: { i: 7.0, j: 4.8, face: 'nw' } },
-      { id: 't7d', kind: 'hand-basket', name: 'Saison Korbe', price: 0, room: 'r7', at: { i: 2.0, j: 7.4, face: 'ne' } },
 
       { id: 't8a', kind: 'crate-tower', name: 'Leergut Kisten', price: 0, room: 'r8', at: { i: 2.4, j: 1.2, face: 'ne' } },
       { id: 't8b', kind: 'pallet-stack', name: 'Vorrat Kartons', price: 0, room: 'r8', at: { i: 4.2, j: 6.6, face: 'ne' } },
-      { id: 't8c', kind: 'dump-bin', name: 'Kartonwurf', price: 0, room: 'r8', at: { i: 6.6, j: 4.8, face: 'nw' } },
-      { id: 't8d', kind: 'server-rack', name: 'Lager Server', price: 0, room: 'r8', at: { i: 7.0, j: 1.2, face: 'nw' } },
 
       { id: 't9a', kind: 'bakery-rack', name: 'Backshop Brotkorb', price: 0, room: 'r9', at: { i: 0.5, j: 5.4, face: 'ne' } },
-      { id: 't9b', kind: 'bistro-counter', name: 'Fruhstucks Theke', price: 0, room: 'r9', at: { i: 4.0, j: 1.2, face: 'ne' } },
-      { id: 't9c', kind: 'coffee-counter', name: 'Backshop Kaffee', price: 0, room: 'r9', at: { i: 4.0, j: 2.2, face: 'ne' } },
-      { id: 't9d', kind: 'hand-basket', name: 'Brotchen Korbe', price: 0, room: 'r9', at: { i: 7.0, j: 2.0, face: 'nw' } },
 
-      { id: 't10a', kind: 'service-counter', name: 'Kase Theke', price: 0, room: 'r10', at: { i: 0.6, j: 2.2, face: 'ne' } },
-      { id: 't10b', kind: 'deli-counter', name: 'Wurst & Schinken Theke', price: 0, room: 'r10', at: { i: 3.0, j: 1.2, face: 'ne' } },
-      { id: 't10c', kind: 'freezer-wall', name: 'TK Fisch & Meeresfruchte', price: 0, room: 'r10', at: { i: 4.6, j: 2.4, face: 'ne' } },
-      { id: 't10d', kind: 'crate-tower', name: 'Fisch Kisten', price: 0, room: 'r10', at: { i: 6.6, j: 1.4, face: 'nw' } },
 
       { id: 't11a', kind: 'wine-rack', name: 'Weinregal: Merlot', price: 0, room: 'r11', at: { i: 0.6, j: 5.6, face: 'ne' } },
-      { id: 't11b', kind: 'wine-rack', name: 'Weinregal: Chardonnay', price: 0, room: 'r11', at: { i: 3.4, j: 2.4, face: 'ne' } },
-      { id: 't11c', kind: 'beverage-shelf', name: 'Spirituosen Regal', price: 0, room: 'r11', at: { i: 5.0, j: 7.0, face: 'ne' } },
-      { id: 't11d', kind: 'crate-tower', name: 'Weinkisten Stapel', price: 0, room: 'r11', at: { i: 6.4, j: 2.4, face: 'nw' } },
 
       { id: 't12a', kind: 'bistro-counter', name: 'Personalkuche Theke', price: 0, room: 'r12', at: { i: 4.0, j: 2.4, face: 'ne' } },
-      { id: 't12b', kind: 'server-rack', name: 'Personal DVR', price: 0, room: 'r12', at: { i: 4.0, j: 6.6, face: 'ne' } },
-      { id: 't12c', kind: 'hand-wash', name: 'Personal Hygiene', price: 0, room: 'r12', at: { i: 7.0, j: 2.0, face: 'nw' } },
-      { id: 't12d', kind: 'dump-bin', name: 'Personalmull', price: 0, room: 'r12', at: { i: 6.6, j: 6.6, face: 'nw' } },
 
       // Aisle signage in the expanded wings (passable markers).
       { id: 'd_sign7', kind: 'aisle-sign', name: 'Aisle 7 · Saison', price: 0, room: 'r7', at: { i: 4.5, j: 0.6, face: 'ne' } },
@@ -803,7 +1034,7 @@
       { id: 'd_fr5', kind: 'freezer-wall', name: 'TK Drogerie Wand', price: 0, room: 'r5', at: { i: 0.6, j: 7.0, face: 'ne' } },
       { id: 'd_bin2', kind: 'dump-bin', name: 'SB Kaffee Pallette', price: 0, room: 'r2', at: { i: 6.6, j: 7.0, face: 'nw' } },
       { id: 'd_bs1', kind: 'hand-basket', name: 'Korbstapel Eingang', price: 0, room: 'r1', at: { i: 6.0, j: 6.6, face: 'ne' } },
-      { id: 'd_hw3', kind: 'hand-wash', name: 'Hygienebecken Kuhlregal', price: 0, room: 'r3', at: { i: 5.8, j: 7.0, face: 'nw' } },
+      { id: 'd_hw3', kind: 'hand-wash', name: 'Hygienebecken Kuhlregal', price: 0, room: 'r3', at: { i: 3.2, j: 7.0, face: 'nw' } },
     ],
   };
 
@@ -870,6 +1101,7 @@
     ],
     lootTargets: MARKET_LOOT,
     entrancePos: { I: 1.3, J: 4.5, room: 'r1' },
+    playerSpawnPos: { I: 2.8, J: 3.2, room: 'r1' },
     exitGatePos: { I: 32.4, J: 21.2, room: 'r6' },
     detaggerPos: { I: 32.2, J: 24.8, room: 'r6' },
     cameras: MARKET_CAMERAS,

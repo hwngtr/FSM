@@ -188,11 +188,15 @@ function twinkle(H, R, x, y, s, ink = 'sun', tone = 1) { H.fill([[x, y - s], [x 
 // rm: {w, d, type, walls: {ink, tone, style, ink2, tone2}, floor: {style, ink, tone, ink2, tone2},
 //      windows: [{side, pos, w, h, z}], door: {side, pos}, bulb: {side, pos}, outlets: [{side, pos}], outdoor}
 // o.edges: what each edge is (see EDGES; scene.js works it out from the neighbours), o.onFloor: drawn on the bare floor
-function drawShell(H, R, rm, o = {}) {
+function drawShellFloor(H, R, rm, o = {}) {
   const E = o.edges || EDGES, full = ['nw', 'ne'].filter((sd) => E[sd] === 'wall'), on = (x) => x && full.includes(x.side);
   slab(H, R, rm, E);
   floorOf(H, R, rm, rm.floor || {});
   if (o.onFloor) o.onFloor();
+  for (const win of (rm.windows || []).filter(on)) sunPatch(H, R, rm, win.side, win.pos, win.w ?? 2);
+}
+function drawShellWalls(H, R, rm, o = {}) {
+  const E = o.edges || EDGES, full = ['nw', 'ne'].filter((sd) => E[sd] === 'wall'), on = (x) => x && full.includes(x.side);
   const wall = rm.walls || {};
   if (full.length) {
     backWalls(H, R, rm, wall, full);
@@ -202,8 +206,8 @@ function drawShell(H, R, rm, o = {}) {
     wallTrim(H, R, rm, wall, full);
   }
   for (const sd of ['ne', 'nw']) { if (E[sd] === 'low') lowWall(H, R, rm, sd, (E.paint && E.paint[sd]) || wall); if (E[sd] === 'fence') fence(H, R, rm, sd); }
-  for (const win of (rm.windows || []).filter(on)) sunPatch(H, R, rm, win.side, win.pos, win.w ?? 2);
 }
+function drawShell(H, R, rm, o = {}) { drawShellFloor(H, R, rm, o); drawShellWalls(H, R, rm, o); }
 function drawBulb(H, R, rm, lit, E = EDGES) { if (rm.bulb && E[rm.bulb.side] === 'wall') bulbOn(H, R, rm.bulb.side, rm.bulb.pos, lit); }
 
 // where a room's card sits in the house, in world px
@@ -211,5 +215,5 @@ const roomOrigin = (at) => HS.P.iso(at[0] * PITCH, at[1] * PITCH, 0);
 // the region a room's drawing can cover, in the room's own px (walls and things poke above the floor)
 function roomBounds(rm) { const w = rm.w, d = rm.d, P = HS.P; return { x0: P.isoX(0, d) - 30, y0: -WALL_H * P.TZ - 40, x1: P.isoX(w, 0) + 30, y1: P.isoY(w, d, 0) + 30 }; }
 
-HS.W = { ROOM, PITCH, WALL_H, LOW_H, GAP, EDGES, lowWall, fence, shadowAt, shadowBox, slab, floorOf, wallPt, wallRect, backWalls, wallTrim, boxAt, windowOn, sunPatch, doorOn, bulbOn, outletOn, cloud, twinkle, drawShell, drawBulb, roomOrigin, roomBounds };
+HS.W = { ROOM, PITCH, WALL_H, LOW_H, GAP, EDGES, lowWall, fence, shadowAt, shadowBox, slab, floorOf, wallPt, wallRect, backWalls, wallTrim, boxAt, windowOn, sunPatch, doorOn, bulbOn, outletOn, cloud, twinkle, drawShellFloor, drawShellWalls, drawShell, drawBulb, roomOrigin, roomBounds };
 })(globalThis.HOUSE || (globalThis.HOUSE = {}));

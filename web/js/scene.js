@@ -11,7 +11,7 @@
 (function (HS) {
 'use strict';
 const { streamOf } = HS.P;
-const { ROOM, drawShell, drawBulb } = HS.W;
+const { ROOM, drawShell, drawShellFloor, drawShellWalls, drawBulb } = HS.W;
 const { drawThing, depthOf } = HS.K;
 
 const kindOf = (kinds, item) => kinds[item.kind] || null;
@@ -48,14 +48,24 @@ function crossable(m, I, J, I2, J2) {
   const along = I === I2 ? I : J; return ((along % ROOM) + ROOM) % ROOM === 4;
 }
 
-// the base: the card, floor, walls, rugs (under the sun patch), and everything hung on the walls
-function drawBase(H, house, rm, items, kinds, images, o = {}) {
+// Draw the shell card, floor, rugs, and light patches before depth-sorted room objects.
+function drawFloorBase(H, house, rm, items, kinds, images, o = {}) {
   const R = streamOf('room', rm.id), E = edgesOf(house, rm);
   const flat = items.filter((it) => kindOf(kinds, it) && layerOf(kindOf(kinds, it)) === 'rug');
+  drawShellFloor(H, R, rm, { edges: E, onFloor: () => { for (const it of flat) if (!o.skip || !o.skip(it)) drawThing(H, streamOf('item', it.id), kindOf(kinds, it), it, images); } });
+}
+// Draw the room walls and objects hung on them as a separate cacheable layer.
+function drawWallBase(H, house, rm, items, kinds, images, o = {}) {
+  const R = streamOf('room', rm.id), E = edgesOf(house, rm);
   const hung = items.filter((it) => kindOf(kinds, it) && layerOf(kindOf(kinds, it)) === 'wall');
-  drawShell(H, R, rm, { edges: E, onFloor: () => { for (const it of flat) if (!o.skip || !o.skip(it)) drawThing(H, streamOf('item', it.id), kindOf(kinds, it), it, images); } });
+  drawShellWalls(H, R, rm, { edges: E });
   for (const it of hung) if (!o.skip || !o.skip(it)) drawThing(H, streamOf('item', it.id), kindOf(kinds, it), it, images);
   drawBulb(H, R, rm, o.lit ?? true, E);
+}
+// Draw the full static base for callers that do not need separate layers.
+function drawBase(H, house, rm, items, kinds, images, o = {}) {
+  drawFloorBase(H, house, rm, items, kinds, images, o);
+  drawWallBase(H, house, rm, items, kinds, images, o);
 }
 // the things that stand, back to front; extras = [{key, draw(H)}] (the bot) sort in among them
 function drawStanding(H, rm, items, kinds, images, extras = [], o = {}) {
@@ -79,5 +89,5 @@ function buildable(rooms, near) {
 // spaces back to front, the order they must be drawn in
 const backToFront = (rooms) => rooms.slice().sort((a, b) => a.at[0] + a.at[1] - b.at[0] - b.at[1] || a.at[0] - b.at[0]);
 
-HS.S = { kindOf, itemsIn, layerOf, key, cells, edgesOf, portals, crossable, buildable, drawBase, drawStanding, drawRoom, backToFront };
+HS.S = { kindOf, itemsIn, layerOf, key, cells, edgesOf, portals, crossable, buildable, drawFloorBase, drawWallBase, drawBase, drawStanding, drawRoom, backToFront };
 })(globalThis.HOUSE || (globalThis.HOUSE = {}));

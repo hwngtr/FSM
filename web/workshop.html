@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Object Workshop — The Heist at Dither's House</title>
+<meta name="description" content="Browse the game's procedural object models and placed objects, inspect and tweak their shape data, and jump to the source.">
+<meta name="theme-color" content="#f3ebdd">
+<meta name="color-scheme" content="light">
+<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="workshop.css?v=2">
+</head>
+<body class="object-workshop-page">
+<div class="app">
+  <header class="top">
+    <h1 class="title">Object <span class="bot-name">Workshop</span></h1>
+    <p class="lede">Browse every reusable object model and every placed object in the house and the
+    Frischemarkt. Inspect the procedural shape data behind each one, tweak it in a draft, and see the
+    result rendered live with the same riso press as the game.</p>
+    <nav class="game-nav" aria-label="Game selection">
+      <a href="index.html" class="game-nav-link">&larr; The Heist at Dither's House</a>
+      <a href="market.html" class="game-nav-link">Frischemarkt Heist &rarr;</a>
+      <span class="game-nav-current" aria-current="page">Object Workshop</span>
+    </nav>
+    <p class="workshop-note">Every model here is <strong>procedural shape data</strong> drawn with the
+    project's riso press — there are no downloadable mesh files. A few objects (framed prints) are
+    <strong>image-backed</strong> and load a PNG instead of shapes; those are labelled below.</p>
+  </header>
+
+  <main class="workshop" aria-label="Object catalog">
+    <section class="catalog" aria-label="Catalog list">
+      <div class="catalog-controls">
+        <label class="search-label" for="search">Search</label>
+        <input type="search" id="search" placeholder="Search by name, kind or room&hellip;" autocomplete="off">
+        <div class="tabs" role="tablist" aria-label="Catalog tab">
+          <button type="button" role="tab" id="tab-models" aria-controls="list-models" aria-selected="true">Models</button>
+          <button type="button" role="tab" id="tab-placed" aria-controls="list-placed" aria-selected="false">Placed</button>
+        </div>
+      </div>
+      <p class="count" id="count" role="status"></p>
+      <div class="lists">
+        <ul class="catalog-list" id="list-models" role="tabpanel" aria-labelledby="tab-models" tabindex="0"></ul>
+        <ul class="catalog-list" id="list-placed" role="tabpanel" aria-labelledby="tab-placed" tabindex="0" hidden></ul>
+      </div>
+      <p class="empty" id="empty" hidden>No matches. Try another word.</p>
+    </section>
+
+    <section class="inspector" aria-label="Inspector">
+      <div class="inspector-empty" id="inspector-empty">
+        <p>Pick a model or a placed object on the left to inspect it.</p>
+      </div>
+      <div class="inspector-body" id="inspector-body" hidden>
+        <div class="inspector-head">
+          <h2 class="inspector-title" id="ins-title"></h2>
+          <p class="ins-meta" id="ins-meta"></p>
+          <p class="ins-badges" id="ins-badges"></p>
+        </div>
+        <div class="preview-wrap">
+          <canvas id="preview" width="0" height="0" role="img" aria-label="Live riso preview of the selected object"></canvas>
+        </div>
+        <p class="draft-error" id="draft-error" role="alert" hidden></p>
+        <label class="draft-label" for="draft">Draft (JSON)</label>
+        <textarea id="draft" spellcheck="false" aria-describedby="draft-help"></textarea>
+        <p class="draft-help" id="draft-help">Edit and press <strong>Apply &amp; preview</strong>. Drafts stay local.
+        They reach source only when you choose <strong>Write applied model to source</strong> and confirm.</p>
+        <div class="ins-actions">
+          <button type="button" class="cta" id="apply">Apply &amp; preview</button>
+          <button type="button" id="reset">Reset draft</button>
+          <button type="button" id="copy-model">Copy model JSON</button>
+          <button type="button" id="copy-placement">Copy placement JSON</button>
+          <button type="button" class="cta" id="write-source" hidden>Write applied model to source</button>
+        </div>
+        <section class="ai-workbench" aria-labelledby="ai-title">
+          <h3 id="ai-title">AI model pass</h3>
+          <p>Describe what looks wrong. Copy a prompt into any AI assistant, then paste its JSON into the draft above and preview it.</p>
+          <label for="ai-goals">What should improve?</label>
+          <textarea id="ai-goals" rows="3" placeholder="Example: Make this read clearly as a shopping trolley. Keep four small wheels under the frame, spread near the corners, and use an open wire basket."></textarea>
+          <div class="ins-actions">
+            <button type="button" class="cta" id="copy-ai-prompt">Copy AI prompt</button>
+            <button type="button" id="check-model">Check model draft</button>
+          </div>
+          <p class="ai-status" id="ai-status" role="status" aria-live="polite"></p>
+          <ul class="model-checks" id="model-checks" aria-label="Model draft checks"></ul>
+          <p class="ai-note">Checks catch malformed or out-of-bounds shapes. They cannot prove that an object looks realistic. The prompt and draft stay in this browser; this page does not send data to an AI or store an API key.</p>
+        </section>
+        <div class="links" id="ins-links"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- shared renderer and catalog data; no market-app or heist logic -->
+<script src="js/press.js"></script>
+<script src="js/world.js"></script>
+<script src="js/kinds.js"></script>
+<script src="js/data.js"></script>
+<script src="js/market.js?v=7"></script>
+<script src="js/model-index.js?v=1"></script>
+<script src="js/model-constraints.js?v=1"></script>
+<script src="js/model-source.js?v=1"></script>
+<script src="js/workshop.js?v=3"></script>
+</body>
+</html>

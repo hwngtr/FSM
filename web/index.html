@@ -12,13 +12,14 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="fonts/KevinSerif-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/KevinSans-Regular.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="style.css?v=7">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 <div class="app">
   <header class="top">
     <h1 class="title">The heist at <span class="bot-name" id="header-bot-name">Dither</span>'s house</h1>
     <p class="lede">You are the <strong>Thief</strong> (teal bandit). Steal <span id="header-quota">$5,000</span> in valuables and slip out the front door before the <strong>AI Guard</strong> catches you.</p>
+    <p class="lede"><a href="workshop.html">Browse object models &amp; code ↗</a></p>
   </header>
 
   <main class="view" id="view" aria-label="The house. Use WASD or click to sneak, E to steal loot, Q to toss a coin.">
@@ -93,7 +94,7 @@
       <ul class="rates">
         <li>
           <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2.2" fill="currentColor"/></svg>
-          <span class="rate-top"><span class="rate-n" id="rate-place">p_patrol</span></span>
+          <span class="rate-top"><span class="rate-n" id="rate-place">Patrol</span></span>
           <span class="rate-x" id="rate-place-sub">Petri net (1 token)</span>
         </li>
         <li>
@@ -109,7 +110,7 @@
         <li>
           <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5l4 4 8-9"/></svg>
           <span class="rate-top"><span class="rate-n" id="rate-firings">0</span> <span class="rate-l" id="rate-firings-label">switches</span></span>
-          <span class="rate-x" id="rate-guard-last">TLA+ I1–I5 verified</span>
+          <span class="rate-x" id="rate-guard-last">Last transition: idle → patrol</span>
         </li>
       </ul>
       <div class="goal">
@@ -151,18 +152,20 @@
     <footer class="foot">
       <p>Project 2: <strong>Smart NPC Behavior System</strong>. You control the Thief; the Guard NPC runs a single-source <strong>7-state FSM</strong>, <strong>1-token Petri Net</strong>, and <strong>Reactive Behavior Tree</strong>.</p>
     </footer>
+    <details class="break-ui-drawer">
+      <summary>Debug data</summary>
+      <nav class="break-ui-toggle" aria-label="Break-UI dataset mode">
+        <button type="button" data-break-mode="demo" data-active>Demo data</button>
+        <button type="button" data-break-mode="worst">Worst case</button>
+        <button type="button" data-break-mode="empty">Empty</button>
+        <button type="button" data-break-mode="one">One</button>
+        <button type="button" data-break-mode="huge">1,000 rows</button>
+      </nav>
+    </details>
   </aside>
 </div>
 
-<!-- Dev-only @break-ui dataset switcher (fixed bottom-center, neutral chrome) -->
-<nav class="break-ui-toggle" aria-label="Break-UI dataset mode">
-  <button type="button" data-break-mode="demo" data-active>Demo data</button>
-  <button type="button" data-break-mode="worst">Worst case</button>
-  <button type="button" data-break-mode="empty">Empty</button>
-  <button type="button" data-break-mode="one">One</button>
-  <button type="button" data-break-mode="huge">1,000 rows</button>
-</nav>
-
+<!-- Dev-only @break-ui stress fixtures -->
 <script src="js/data.js"></script>
 <script src="js/guard_config.js"></script>
 <script src="js/bt.js"></script>
@@ -171,6 +174,6 @@
 <script src="js/kinds.js"></script>
 <script src="js/robot.js"></script>
 <script src="js/scene.js"></script>
-<script src="app.js?v=8"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>

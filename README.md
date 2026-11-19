@@ -50,7 +50,7 @@ Each department is stocked with its own goods: bread and coffee in breakfast, ch
 
 Stealing needs line of sight to the goods. A wall or shelf between you and an item blocks the action, so standing near a product on the other side of a partition does not take it.
 
-The checkout zone and EAS exit sit at the far bottom-right corner of the 4x3 plan. The NPC readout above the detective is a compact 136x30 px tag, so it does not hide the floor.
+The checkout zone and EAS exit sit at the far bottom-right corner of the 4x3 plan. The NPC readout above the detective is a compact floating threat pip, so it does not hide the floor.
 
 **Collision.** Walls and every stand-on-floor object block the player. Each fixture is one solid rectangle, so there is no walkable seam between adjacent shelf tiles. Rooms are crossed only through the doorway band (local tile 4, with an epsilon for floating-point drift), and the detective and staff steer to that doorway before crossing. The player slides along walls instead of passing through them. Every stand-on-floor object is solid, including the de-tagger and small props. Only the entrance arch, EAS gate and wall signs stay walk-through. Patrol waypoints sit on clear tiles, and both NPCs sidestep around fixtures instead of wedging against them.
 
@@ -58,7 +58,7 @@ The checkout zone and EAS exit sit at the far bottom-right corner of the 4x3 pla
 
 **Security factors.** Three sweeping CCTV cameras relay sightings to the detective. Six of ten goods carry an RF tag, and crossing the EAS gate with a tag fires a recoverable alarm at 100% heat. Staff patrol a five-point route with a narrow vision cone. The de-tagger sits in the Security Office at the bottom right.
 
-The page keeps the `Guard: FSM / Guard: BT` switch, four personality traits, Glance HUD tether, AI Shoplifter Bot, and the 5-mode `@break-ui` switcher. A nav link returns to the graded house build.
+The page keeps the `Guard: FSM / Guard: BT` switch, four personality traits, Glance HUD tether, AI Shoplifter Bot, and the five-mode `@break-ui` switcher in a collapsed Debug data drawer. A nav link returns to the graded house build.
 
 ### 2. Run the Unit & Formal Verification Suite (Zero External Dependencies)
 ```bash
